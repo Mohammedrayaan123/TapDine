@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TapDine - Professional Table Reservation System</title>
+    
+    <!-- Firebase SDK (Compat version for easier integration) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #F9FAFB;
+            color: #111827;
+            min-height: 100vh;
+        }
+
+        /* Professional Tech Startup Color Palette */
+        :root {
+            --bg-primary: #F9FAFB;
+            --surface: #FFFFFF;
+            --border: #E5E7EB;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --brand-primary: #6366F1;
+            --brand-hover: #4F46E5;
+            --accent-secondary: #06B6D4;
+            --hero-gradient: linear-gradient(90deg, #6366F1 0%, #06B6D4 100%);
+            --success: #22C55E;
+            --warning: #FACC15;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            /* Fluid scale additions */
+            --space-1: clamp(4px, 0.4vw, 8px);
+            --space-2: clamp(8px, 0.7vw, 12px);
+            --space-3: clamp(12px, 1.0vw, 16px);
+            --space-4: clamp(16px, 1.4vw, 24px);
+            --space-5: clamp(20px, 1.8vw, 32px);
+
+            --fs-sm: clamp(12px, 1.0vw, 14px);
+            --fs-md: clamp(14px, 1.2vw, 16px);
+            --fs-lg: clamp(16px, 1.6vw, 20px);
+            --fs-xl: clamp(20px, 2.2vw, 28px);
+        }
+
+        /* View Switcher */
+        .view-switcher {
+            position: fixed;
+            top: 73px;
+            right: 16px;
+            z-index: 1000;
+            background: var(--surface);
+            padding: 8px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+
+        .view-switcher button {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+        }
+
+        .view-switcher button.active {
+            background: var(--hero-gradient);
+            color: white;
+        }
+
+        .view-switcher button:hover:not(.active) {
+            background: #F3F4F6;
+            color: var(--text-primary);
+        }
+
+        /* Header */
+        .header {
+            background: var(--hero-gradient);
+            color: white;
+            padding: 32px 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .restaurant-name {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .location {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--brand-primary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-secondary);
+            color: white;
+            box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: #0891B2;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+        }
+
+        /* Map Container with Background Image Support */
+        .map-container {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            height: clamp(320px, 91vh, 736px);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            /* background handled by inner .map-stage so it scales with transform */
+        }
+
+        /* Inner stage that holds the background and absolutely positioned items.
+           It stays at the original design size and is scaled via transform. */
+        .map-stage {
+            position: relative;
+            width: 1123px; /* design width */
+            height: 723px; /* design height */
+            transform-origin: top left;
+            background-repeat: no-repeat;
+            background-position: center;
+          background-size: 100% 100%;
+            border-radius: 8px;
+        }
+
+        /* Professional Table Icons */
+        .table-icon-wrapper {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10;
+            transform-origin: center;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
+
+        .table-icon-wrapper:hover {
+            transform: none; /* disabled hover scale to keep tables still */
+            z-index: 15;
+        }
+
+        .table-icon-wrapper[data-status="occupied"]:hover {
+            transform: none; /* disabled hover scale to keep tables still */
+            filter: drop-shadow(0 8px 20px rgba(239, 68, 68, 0.4));
+        }
+
+        .table-number {
+            text-align: center;
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .table-wait-time {
+            text-align: center;
+            font-size: 10px;
+            color: white;
+            margin-top: 4px;
+            background: rgba(239, 68, 68, 0.9);
+            border-radius: 8px;
+            padding: 2px 6px;
+            font-weight: 600;
+        }
+
+        /* Staff Dashboard */
+        .staff-dashboard {
+            display: none;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+
+        .staff-dashboard.active {
+            display: block;
+        }
+
+        .staff-dashboard.active .chatbot {
+            display: none;
+        }
+
+        .staff-header {
+            background: var(--hero-gradient);
+            color: white;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .staff-header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .staff-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: minmax(260px, 320px) 1fr;
+            gap: 24px;
+        }
+
+        /* Generic responsive grid helper */
+        .responsive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--space-3);
+        }
+
+        /* Universal media sizing */
+        img, video, canvas, svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Make controls wrap nicely */
+        .view-switcher,
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+
+        /* Comfortable touch targets */
+        .btn, button, .drag-item {
+            min-height: 44px;
+        }
+
+        /* Avoid iOS zoom on inputs */
+        input, select, textarea {
+            font-size: 16px;
+        }
+
+        /* Tablet breakpoint adjustments */
+        @media (max-width: 992px) {
+            .staff-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .container { padding: 0 12px; }
+            .map-container { height: clamp(280px, 55vh, 520px); }
+        }
+
+        /* Professional Palette UI */
+        .palette {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .palette-section {
+            margin-bottom: 20px;
+        }
+
+        .palette-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .drag-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .drag-item:hover {
+            background: #F3F4F6;
+            border-color: var(--brand-primary);
+        }
+
+        .drag-item:active {
+            cursor: default;
+            transform: none;
+        }
+
+        .template-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .template-emoji {
+            font-size: 16px;
+        }
+
+        .template-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .template-seats {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Staff Map */
+        .staff-map {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .staff-map-container {
+            position: relative;
+            width: 100%;
+            height: clamp(320px, 60vh, 640px);
+            border-radius: 12px;
+            overflow: auto;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+        }
+
+        .staff-table {
+            position: absolute;
+            z-index: 5;
+            cursor: move;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
+        
+        .staff-table:hover {
+            transform: none; /* keep still */
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.25));
+        }
+
+        .staff-table .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .staff-table:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Chatbot */
+        .chatbot {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 340px;
+            z-index: 1200;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .chatbot-closed {
+            background: var(--hero-gradient);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chatbot-window {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            max-height: 420px;
+        }
+
+        .chatbot.open .chatbot-window {
+            display: flex;
+        }
+
+        .chatbot-header {
+            background: var(--hero-gradient);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-messages {
+            padding: 16px;
+            height: 280px;
+            overflow: auto;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .msg.user {
+            background: var(--brand-primary);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .msg.ai {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+
+        /* Toast System */
+        .toast-container {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 2400;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: #F0F9FF;
+            color: #075985;
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            background: #FEF2F2;
+            color: #991B1B;
+            border-color: var(--danger);
+        }
+
+        .toast.info {
+            background: #F0F9FF;
+            color: #1E40AF;
+            border-color: var(--info);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--brand-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .view-switcher {
+                top: 10px;
+                right: 10px;
+            }
+
+            .view-switcher button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .chatbot {
+                width: calc(100vw - 40px);
+                left: 20px;
+            }
+
+            .staff-content {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .container {
+                padding: 0 16px;
+            }
+
+            .header {
+                padding: 24px 16px;
+            }
+        }
+
+        /* My Activity Sidebar */
+        .activity-sidebar {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            z-index: 2200;
+            transition: right 0.35s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-sidebar.open {
+            right: 0;
+        }
+
+        .activity-header {
+            padding: 20px 24px;
+            background: var(--hero-gradient);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-body {
+            padding: 24px;
+            overflow: auto;
+            flex: 1;
+        }
+
+        .activity-section {
+            margin-bottom: 24px;
+        }
+
+        .activity-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        /* My Activity Button */
+        .my-activity-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 567px;
+            background: var(--accent-secondary);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 1100;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .my-activity-btn:hover {
+            background: #0891B2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        /* Rotation Context Menu */
+        .rotation-menu {
+            position: absolute;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 8px 0;
+            min-width: 150px;
+        }
+
+        .rotation-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: background-color 0.2s ease;
+        }
+
+        .rotation-menu-item:hover {
+            background: var(--bg-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- View Switcher -->
+    <div class="view-switcher">
+        <button id="customerViewBtn" class="active">Customer View</button>
+        <button id="staffViewBtn">Staff Dashboard</button>
+    </div>
+
+    <!-- My Activity Button -->
+    <button id="myActivityBtn" class="my-activity-btn">📊 My Activity</button>
+
+    <!-- Customer App -->
+    <div id="customerApp" class="customer-app" style="display: block;">
+        <div class="header">
+            <div class="header-content">
+                <div class="restaurant-name">Avalio Resto Cafe</div>
+                <div class="location"> Riyadh, Al Olaya District</div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Table Status Legend -->
+            <div class="card">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--text-primary);">Table Status</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--success);"></span>
+                        <span style="font-size: 14px; color: var(--text-secondary);">Available</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--warning);"></span>
+                        <span style="font-size: 14px; color: var(--text-secondary);">Reserved</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #FB923C;"></span>
+                        <span style="font-size: 14px; color: var(--text-secondary);">Awaiting</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--danger);"></span>
+                        <span style="font-size: 14px; color: var(--text-secondary);">Occupied</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--info);"></span>
+                        <span style="font-size: 14px; color: var(--text-secondary);">Cleaning</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Map -->
+            <div class="card">
+                <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--text-primary);">Restaurant Floor Plan</h3>
+                <div class="map-container" id="tableMap"></div>
+            </div>
+
+            <!-- My Reservation -->
+            <div id="myReservation" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Staff Dashboard -->
+    <div id="staffDashboard" class="staff-dashboard">
+        <div class="staff-header">
+            <div class="staff-header-content">
+                <h1 style="font-size: 28px; font-weight: 800;">Staff Dashboard</h1>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <button class="btn btn-primary" id="addTableBtn">➕ Add Table</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="staff-content">
+            <!-- Palette Sidebar -->
+            <div class="palette">
+                <div class="palette-section">
+                    <div class="palette-title">🔧 Standard Tables</div>
+                    <div class="drag-item" draggable="true" data-template="square_2">
+                        <div class="template-info">
+                            <span class="template-emoji">⬜</span>
+                            <div>
+                                <div class="template-name">Square 2-Seat</div>
+                                <div class="template-seats">2 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="square_4">
+                        <div class="template-info">
+                            <span class="template-emoji">⬜</span>
+                            <div>
+                                <div class="template-name">Square 4-Seat</div>
+                                <div class="template-seats">4 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="round_2">
+                        <div class="template-info">
+                            <span class="template-emoji">⭕</span>
+                            <div>
+                                <div class="template-name">Round 2-Seat</div>
+                                <div class="template-seats">2 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="round_4">
+                        <div class="template-info">
+                            <span class="template-emoji">⭕</span>
+                            <div>
+                                <div class="template-name">Round 4-Seat</div>
+                                <div class="template-seats">4 people</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">🍽️ Large Tables</div>
+                    <div class="drag-item" draggable="true" data-template="round_6">
+                        <div class="template-info">
+                            <span class="template-emoji">⭕</span>
+                            <div>
+                                <div class="template-name">Round 6-Seat</div>
+                                <div class="template-seats">6 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="rect_4">
+                        <div class="template-info">
+                            <span class="template-emoji">▭</span>
+                            <div>
+                                <div class="template-name">Rectangular 4-Seat</div>
+                                <div class="template-seats">4 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="rect_6">
+                        <div class="template-info">
+                            <span class="template-emoji">▭</span>
+                            <div>
+                                <div class="template-name">Rectangular 6-Seat</div>
+                                <div class="template-seats">6 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="rect_8">
+                        <div class="template-info">
+                            <span class="template-emoji">▭</span>
+                            <div>
+                                <div class="template-name">Rectangular 8-Seat</div>
+                                <div class="template-seats">8 people</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">🛋️ Premium Seating</div>
+                    <div class="drag-item" draggable="true" data-template="sofa_4">
+                        <div class="template-info">
+                            <span class="template-emoji">🛋️</span>
+                            <div>
+                                <div class="template-name">Lounge Sofa 4-Seat</div>
+                                <div class="template-seats">4 people</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="drag-item" draggable="true" data-template="sofa_6">
+                        <div class="template-info">
+                            <span class="template-emoji">🛋️</span>
+                            <div>
+                                <div class="template-name">Lounge Sofa 6-Seat</div>
+                                <div class="template-seats">6 people</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                    Drag items into the floor plan. Right-click tables to rotate. Drag existing tables to move position.
+                </div>
+
+                <!-- Queue Panel -->
+                <div style="margin-top: 24px;">
+                    <div class="palette-title">📋 Queue Status</div>
+                    <div id="queuePanel" style="font-size: 13px; color: var(--text-secondary);">No active queues</div>
+                </div>
+            </div>
+
+            <!-- Main Staff Area -->
+            <div>
+                <!-- Notifications -->
+                <div id="notificationsSection" style="display: none; margin-bottom: 24px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; margin-bottom: 16px;">
+                        <span>⚠️</span>
+                        <span>Notifications (<span id="notifCount">0</span>)</span>
+                    </div>
+                    <div id="notificationsList"></div>
+                </div>
+
+                <!-- Staff Map -->
+                <div class="staff-map">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="font-size: 18px; font-weight: 700;">Live Floor Plan</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn" id="zoomInBtn" style="padding: 8px 12px;">🔍+</button>
+                            <button class="btn" id="zoomOutBtn" style="padding: 8px 12px;">🔍-</button>
+                            <button class="btn" id="resetZoomBtn" style="padding: 8px 12px;">↻</button>
+                        </div>
+                    </div>
+                    <div class="staff-map-container" id="staffMap"></div>
+                </div>
+
+                <!-- Tables Grid -->
+                <div style="margin-top: 24px;">
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Table Overview</h3>
+                    <div id="tablesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chatbot -->
+    <div class="chatbot" id="chatbot">
+        <div class="chatbot-closed" id="chatbotToggle">
+            <span>🤖 Munchie Assistant</span>
+            <span style="opacity: 0.8; font-size: 12px;">Chat</span>
+        </div>
+
+        <div class="chatbot-window">
+            <div class="chatbot-header">
+                <div style="font-weight: 800;">Munchie AI</div>
+                <button id="chatbotClose" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 20px;">✕</button>
+            </div>
+            <div class="chatbot-messages" id="chatbotMessages"></div>
+            <div style="display: flex; gap: 8px; padding: 16px; border-top: 1px solid var(--border); background: var(--surface);">
+                <input type="text" id="chatbotInput" placeholder="Ask about tables for your party..." style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+                <button id="chatbotSend" class="btn btn-primary" style="padding: 10px 16px;">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Activity Sidebar -->
+    <div class="activity-sidebar" id="activitySidebar">
+        <div class="activity-header">
+            <div style="font-weight: 800; font-size: 18px;">📊 My Activity</div>
+            <button id="activityClose" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 20px;">✕</button>
+        </div>
+        <div class="activity-body">
+            <div class="activity-section">
+                <div class="activity-title">🎯 Current Status</div>
+                <div id="currentStatus">No active reservations</div>
+            </div>
+            <div class="activity-section">
+                <div class="activity-title">🍽️ Pre-Orders</div>
+                <div id="preorderStatus">No items ordered</div>
+            </div>
+            <div class="activity-section">
+                <div class="activity-title">⭐ Loyalty Points</div>
+                <div id="loyaltyStatus">0 points</div>
+            </div>
+            <div class="activity-section">
+                <div class="activity-title">📜 Recent Activity</div>
+                <div id="recentActivity">No recent activity</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Reservation Modal -->
+    <div id="reservationModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 24px; font-weight: 700;">Reserve Table #<span id="modalTableNumber"></span></h3>
+                <button id="closeModalBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;"><span id="modalTableSeats"></span> seats • 10 minute hold</p>
+            <input type="text" id="customerName" class="form-input" placeholder="Your Name">
+            <input type="tel" id="customerPhone" class="form-input" placeholder="Phone Number">
+            <select id="customerParty" class="form-input">
+                <option value="">Select Party Size</option>
+                <option value="1">1 person</option>
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5 people</option>
+                <option value="6">6 people</option>
+                <option value="7">7 people</option>
+                <option value="8">8 people</option>
+            </select>
+            <button class="btn btn-primary" id="reserveBtn" style="width: 100%; padding: 16px; font-size: 16px;">Reserve Table</button>
+        </div>
+    </div>
+
+    <!-- Queue Modal -->
+    <div id="queueModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 24px; font-weight: 700;">Join Queue for Table #<span id="queueTableNumber"></span></h3>
+                <button id="closeQueueBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <span style="background: var(--bg-primary); padding: 6px 12px; border-radius: 20px; font-size: 12px;">
+                    Estimated wait: <span id="queueEta">~15 min</span>
+                </span>
+                <span style="background: var(--bg-primary); padding: 6px 12px; border-radius: 20px; font-size: 12px;">
+                    People ahead: <span id="queueAhead">0</span>
+                </span>
+            </div>
+            <input type="text" id="queueName" class="form-input" placeholder="Your Name">
+            <input type="tel" id="queuePhone" class="form-input" placeholder="Phone Number">
+            <select id="queueParty" class="form-input">
+                <option value="">Select Party Size</option>
+                <option value="1">1 person</option>
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5 people</option>
+                <option value="6">6 people</option>
+                <option value="7">7 people</option>
+                <option value="8">8 people</option>
+            </select>
+            <button class="btn btn-primary" id="joinQueueBtn" style="width: 100%; padding: 16px; font-size: 16px;">Join Queue</button>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-top: 12px; text-align: center;">
+                💡 You can browse the menu and pre-order while waiting
+            </p>
+        </div>
+    </div>
+
+    <!-- Smart Queue Modal -->
+    <div id="smartQueueModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 24px; font-weight: 700;">✨ Smart Queue</h3>
+                <button id="closeSmartQueueBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">We'll automatically assign you the best available table matching your preferences</p>
+            <input type="text" id="smartName" class="form-input" placeholder="Your Name">
+            <input type="tel" id="smartPhone" class="form-input" placeholder="Phone Number">
+            <select id="smartParty" class="form-input">
+                <option value="">Select Party Size</option>
+                <option value="1">1 person</option>
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5 people</option>
+                <option value="6">6 people</option>
+                <option value="7">7 people</option>
+                <option value="8">8 people</option>
+            </select>
+            <select id="smartPrefer" class="form-input">
+                <option value="any">Any section</option>
+                <option value="terrace">🌿 Terrace</option>
+                <option value="main">🍽️ Main Hall</option>
+                <option value="vip">⭐ VIP Lounge</option>
+            </select>
+            <button class="btn btn-primary" id="smartJoinBtn" style="width: 100%; padding: 16px; font-size: 16px;">Join Smart Queue</button>
+        </div>
+    </div>
+
+    <!-- Menu Drawer -->
+    <div style="position: fixed; right: -420px; top: 0; width: 420px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 2200; transition: right 0.35s ease; display: flex; flex-direction: column;" id="menuDrawer">
+        <div style="padding: 20px 24px; background: var(--hero-gradient); color: white; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 800; font-size: 18px;">🍽️ Menu & Pre-Order</div>
+            <button id="menuDrawerClose" style="background: transparent; border: none; color: white; cursor: pointer; font-size: 20px;">✕</button>
+        </div>
+        <div style="padding: 20px; overflow: auto; flex: 1;">
+            <div id="preorderStatus" style="background: var(--bg-primary); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; color: var(--text-secondary);">
+                Select items to pre-order
+            </div>
+            <div id="menuList"></div>
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Your Pre-Order</div>
+                <div id="cartList" style="color: var(--text-secondary); font-size: 14px;">No items yet</div>
+                <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div id="cartTotal" style="font-weight: 600;">Total: SAR 0</div>
+                    <button id="placePreorderBtn" class="btn btn-primary">Place Pre-Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Rotation Context Menu -->
+    <div class="rotation-menu" id="rotationMenu" style="display: none;">
+        <div class="rotation-menu-item" data-action="rotate45">Rotate 45°</div>
+        <div class="rotation-menu-item" data-action="rotate90">Rotate 90°</div>
+        <div class="rotation-menu-item" data-action="rotate180">Rotate 180°</div>
+        <div class="rotation-menu-item" data-action="flip">Flip Horizontal</div>
+        <div class="rotation-menu-item" data-action="reset">Reset Rotation</div>
+    </div>
+
+    <script>
+        // Complete Professional Restaurant System Implementation
+        console.log('🍽️ TapDine Professional Reservation System Loading...');
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            // TODO: Replace apiKey and appId with your actual Firebase credentials
+            // Get them from: Firebase Console → Project Settings → Your apps → Web app
+            apiKey: "AIzaSyDtf6c-moQiSfsbgNiLM13Ye3ep7OScomU", // ← Required: Get from Firebase Console
+            authDomain: "tapdine-66c2e.firebaseapp.com",
+            projectId: "tapdine-66c2e",
+            storageBucket: "tapdine-66c2e.appspot.com",
+            messagingSenderId: "133132695923",
+            appId: "1:133132695923:web:19c473b2dc068218c5ed06" // ← Required: Get from Firebase Console
+        };
+
+        // Global Firestore variable
+        let firestore;
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            firestore = firebase.firestore();
+            console.log('✅ Firebase initialized successfully');
+        } catch (error) {
+            console.error('❌ Firebase initialization failed:', error);
+            console.log('⚠️ Running in offline mode with localStorage');
+        }
+
+        // Database Structure
+        const db = {
+            restaurants: {
+                resto_001: {
+                    name: "Cafe Rayaan",
+                    location: "Riyadh, Al Olaya District",
+                    // Examples: "C:/Documents/floorplan.jpg", "D:/Images/restaurant_plan.png"
+                    floor_plan_image_url: "floorplan.jpg"
+                }
+            },
+            customers: {},
+            activities: {},
+            tables: {
+                resto_001: {
+                    table_001: { id: "table_001", number: 1, template: "square_4", seats: 4, status: "available", position: { x: 80, y: 100 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_002: { id: "table_002", number: 2, template: "round_4", seats: 4, status: "available", position: { x: 459, y: 259 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_003: { id: "table_003", number: 3, template: "round_2", seats: 2, status: "available", position: { x: 320, y: 100 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_004: { id: "table_004", number: 4, template: "rect_6", seats: 6, status: "available", position: { x: 40, y: 340 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_005: { id: "table_005", number: 5, template: "rect_8", seats: 8, status: "available", position: { x: 30, y: 450 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_006: { id: "table_006", number: 6, template: "round_6", seats: 6, status: "available", position: { x: 30, y: 180 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_007: { id: "table_007", number: 7, template: "rect_8", seats: 8, status: "available", position: { x: 30, y: 10 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_008: { id: "table_008", number: 8, template: "rect_8", seats: 8, status: "available", position: { x: 280, y: 10 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_009: { id: "table_009", number: 9, template: "rect_8", seats: 8, status: "available", position: { x: 680, y: 10 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_010: { id: "table_010", number: 10, template: "rect_8", seats: 8, status: "available", position: { x: 900, y: 10 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_011: { id: "table_011", number: 11, template: "round_4", seats: 4, status: "available", position: { x: 400, y: 190,}, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_012: { id: "table_012", number: 12, template: "round_4", seats: 4, status: "available", position: { x: 400, y: 320 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_013: { id: "table_013", number: 13, template: "round_4", seats: 4, status: "available", position: { x: 459, y: 380 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_014: { id: "table_014", number: 14, template: "round_4", seats: 4, status: "available", position: { x: 390, y: 450 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_015: { id: "table_015", number: 15, template: "round_4", seats: 4, status: "available", position: { x: 515, y: 190 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_016: { id: "table_016", number: 16, template: "round_4", seats: 4, status: "available", position: { x: 570, y: 259 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_017: { id: "table_017", number: 17, template: "round_4", seats: 4, status: "available", position: { x: 515, y: 320 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_018: { id: "table_018", number: 18, template: "round_4", seats: 4, status: "available", position: { x: 630, y: 190 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_019: { id: "table_019", number: 19, template: "round_4", seats: 4, status: "available", position: { x: 520, y: 450 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_020: { id: "table_020", number: 20, template: "round_4", seats: 4, status: "available", position: { x: 570, y: 380 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_021: { id: "table_021", number: 21, template: "round_4", seats: 4, status: "available", position: { x: 630, y: 450 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+                    table_022: { id: "table_022", number: 22, template: "round_4", seats: 4, status: "available", position: { x: 630, y: 320 }, rotation: 0, reserved_by: { name: "", phone: "" }, reserved_at: null, expires_at: null, customer_confirmed: false, staff_confirmed: false, preorder: [] },
+
+
+                }
+            },
+            notifications: { resto_001: {} },
+            queues: { resto_001: {} },
+            smart_queues: { resto_001: [] },
+            menu: [
+                { id: 'm1', name: 'Truffle Burger', price: 45, category: 'Mains' },
+                { id: 'm2', name: 'Wagyu Ribeye', price: 120, category: 'Mains' },
+                { id: 'm3', name: 'Lobster Ravioli', price: 65, category: 'Mains' },
+                { id: 'm4', name: 'Caesar Salad', price: 28, category: 'Starters' },
+                { id: 'm5', name: 'Chocolate Soufflé', price: 32, category: 'Desserts' },
+                { id: 'm6', name: 'Espresso Martini', price: 35, category: 'Drinks' },
+                { id: 'm7', name: 'Aged Manhattan', price: 42, category: 'Drinks' },
+                { id: 'm8', name: 'Craft Beer Selection', price: 18, category: 'Drinks' }
+            ]
+        };
+
+        // Persistence helpers with Firebase Realtime Database
+        let firestoreInitialized = false;
+        
+        async function initFirestore() {
+            if (typeof firestore === 'undefined') return;
+            
+            try {
+                // Check if Firebase app is initialized
+                if (!firebase.apps.length) return;
+                
+                firestoreInitialized = true;
+                console.log('✅ Firestore initialized');
+                
+                // Set up real-time listeners for each collection
+                setupRealtimeListeners();
+                
+                // Initial load
+                await loadState();
+            } catch (error) {
+                console.error('Firestore initialization error:', error);
+                firestoreInitialized = false;
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!firestoreInitialized) return;
+
+            const restaurantRef = firestore.collection('restaurants').doc(restaurantId);
+            
+            // Listen to all changes in real-time
+            restaurantRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    
+                    // Update local state
+                    if (data.tables) db.tables[restaurantId] = data.tables;
+                    if (data.notifications) db.notifications[restaurantId] = data.notifications;
+                    if (data.queues) db.queues[restaurantId] = data.queues;
+                    if (data.smart_queues) db.smart_queues[restaurantId] = data.smart_queues;
+                    if (data.customers) db.customers = data.customers;
+                    
+                    console.log('🔥 Real-time update received from Firebase');
+                    
+                    // Re-render everything
+                    renderTableMap();
+                    renderMyReservation();
+                    updateActivitySidebar();
+                    
+                    if (document.getElementById('staffDashboard').classList.contains('active')) {
+                        renderStaffDashboard();
+                    }
+                }
+            }, (error) => {
+                console.error('Firestore listener error:', error);
+            });
+        }
+
+        async function saveState(){
+            try{
+                const state = {
+                    tables: db.tables[restaurantId],
+                    notifications: db.notifications[restaurantId],
+                    queues: db.queues[restaurantId],
+                    smart_queues: db.smart_queues[restaurantId],
+                    customers: db.customers
+                };
+                
+                // Save to Firebase
+                if (firestoreInitialized) {
+                    const firebaseState = {
+                        ...state,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await firestore.collection('restaurants').doc(restaurantId).set(firebaseState, { merge: true });
+                    console.log('✅ State saved to Firebase:', Object.keys(state.tables).length, 'tables');
+                }
+                
+                // Also save to localStorage as backup (with regular timestamp)
+                const localState = {
+                    ...state,
+                    updatedAt: Date.now()
+                };
+                localStorage.setItem('tapdine_state_' + restaurantId, JSON.stringify(localState));
+            }catch(e){ 
+                console.warn('Could not save state', e);
+                // Fallback to localStorage only
+                try {
+                    const state = {
+                        tables: db.tables[restaurantId],
+                        notifications: db.notifications[restaurantId],
+                        queues: db.queues[restaurantId],
+                        smart_queues: db.smart_queues[restaurantId],
+                        customers: db.customers
+                    };
+                    localStorage.setItem('tapdine_state_' + restaurantId, JSON.stringify(state));
+                    console.log('⚠️ Saved to localStorage only (offline mode)');
+                } catch (e2) {
+                    console.error('Could not save to localStorage either', e2);
+                }
+            }
+        }
+
+        async function loadState(){
+            try{
+                // Try Firebase first
+                if (firestoreInitialized) {
+                    const doc = await firestore.collection('restaurants').doc(restaurantId).get();
+                    if (doc.exists) {
+                        const state = doc.data();
+                        if (state.tables) {
+                            db.tables[restaurantId] = state.tables;
+                            console.log('✅ Loaded from Firebase:', Object.keys(state.tables).length, 'tables');
+                        }
+                        if (state.notifications) db.notifications[restaurantId] = state.notifications;
+                        if (state.queues) db.queues[restaurantId] = state.queues;
+                        if (state.smart_queues) db.smart_queues[restaurantId] = state.smart_queues;
+                        if (state.customers) db.customers = state.customers;
+                        return; // Successfully loaded from Firebase
+                    }
+                }
+                
+                // Fallback to localStorage
+                const raw = localStorage.getItem('tapdine_state_' + restaurantId);
+                if (!raw) {
+                    console.log('No saved state found, using default tables');
+                    
+                    // Initialize Firebase with default data
+                    if (firestoreInitialized) {
+                        await saveState();
+                    }
+                    return;
+                }
+                const state = JSON.parse(raw);
+                if (state.tables) {
+                    db.tables[restaurantId] = state.tables;
+                    console.log('✅ Loaded from localStorage:', Object.keys(state.tables).length, 'tables');
+                }
+                if (state.notifications) db.notifications[restaurantId] = state.notifications;
+                if (state.queues) db.queues[restaurantId] = state.queues;
+                if (state.smart_queues) db.smart_queues[restaurantId] = state.smart_queues;
+                if (state.customers) db.customers = state.customers;
+                
+                // Sync to Firebase if available
+                if (firestoreInitialized) {
+                    await saveState();
+                }
+            }catch(e){ 
+                console.warn('Could not load state', e); 
+                console.log('Using default table configuration');
+            }
+        }
+
+        // Initialize Firestore after a short delay to ensure it's ready
+        setTimeout(() => initFirestore(), 500);
+
+        // Debug functions (uncomment if needed)
+        // window.clearSavedState = function() {
+        //     localStorage.removeItem('tapdine_state_' + restaurantId);
+        //     console.log('Saved state cleared');
+        //     location.reload();
+        // };
+        
+        // window.debugSaveState = function() {
+        //     saveState();
+        //     console.log('State manually saved');
+        // };
+        
+        // window.debugLoadState = function() {
+        //     loadState();
+        //     console.log('State manually loaded');
+        //     renderTableMap();
+        //     renderStaffMap();
+        // };
+        
+        // window.debugCheckStorage = function() {
+        //     const key = 'tapdine_state_' + restaurantId;
+        //     const stored = localStorage.getItem(key);
+        //     console.log('Stored data:', stored ? JSON.parse(stored) : 'No data found');
+        // };
+
+        // Table Templates System
+        const tableTemplates = {
+            square_2: { name: 'Square 2-Seat', seats: 2, width: 60, height: 60, shape: 'square' },
+            square_4: { name: 'Square 4-Seat', seats: 4, width: 80, height: 80, shape: 'square' },
+            round_2: { name: 'Round 2-Seat', seats: 2, width: 70, height: 70, shape: 'round' },
+            round_4: { name: 'Round 4-Seat', seats: 4, width: 90, height: 90, shape: 'round' },
+            round_6: { name: 'Round 6-Seat', seats: 6, width: 110, height: 110, shape: 'round' },
+            rect_4: { name: 'Rectangular 4-Seat', seats: 4, width: 100, height: 70, shape: 'rect' },
+            rect_6: { name: 'Rectangular 6-Seat', seats: 6, width: 130, height: 80, shape: 'rect' },
+            rect_8: { name: 'Rectangular 8-Seat', seats: 8, width: 160, height: 90, shape: 'rect' },
+            sofa_4: { name: 'Lounge Sofa 4-Seat', seats: 4, width: 120, height: 90, shape: 'sofa' },
+            sofa_6: { name: 'Lounge Sofa 6-Seat', seats: 6, width: 150, height: 100, shape: 'sofa' }
+        };
+
+        // Global State
+        const restaurantId = 'resto_001';
+        let myReservationId = null;
+        let myQueue = null;
+        let selectedTableForReservation = null;
+        let selectedTableForQueue = null;
+        let staffMapZoom = 1;
+        let isDraggingTable = false;
+        let rotationMenuTarget = null;
+
+        // Map stage constants and helpers
+        const MAP_DESIGN_WIDTH = 1123;
+        const MAP_DESIGN_HEIGHT = 723;
+
+        function getOrCreateMapStage(container) {
+            let stage = container.querySelector('.map-stage');
+            if (!stage) {
+                stage = document.createElement('div');
+                stage.className = 'map-stage';
+                container.innerHTML = '';
+                container.appendChild(stage);
+            } else {
+                stage.innerHTML = '';
+            }
+            return stage;
+        }
+
+        function scaleStageToFit(container, stage, extraScale = 1) {
+            // account for container padding: 24px left/right and top/bottom
+            const availableWidth = Math.max(0, container.clientWidth - 48);
+            const availableHeight = Math.max(0, container.clientHeight - 48);
+            // Use cover-style scaling so the image fills the container
+            const baseScale = Math.max(
+                availableWidth / MAP_DESIGN_WIDTH,
+                availableHeight / MAP_DESIGN_HEIGHT
+            ) || 1;
+            const finalScale = baseScale * extraScale;
+            stage.style.transform = `scale(${finalScale})`;
+            stage.dataset.scale = String(finalScale);
+        }
+
+        // Utility Functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // Customer System Functions
+        function getCustomer(phone) {
+            if (!phone) return { name: '', loyalty: 0, visits: 0, lastVisit: null, activities: [] };
+            if (!db.customers[phone]) {
+                db.customers[phone] = { name: '', loyalty: 0, visits: 0, lastVisit: null, activities: [] };
+            }
+            return db.customers[phone];
+        }
+
+        function addLoyaltyPoints(phone, points, reason) {
+            if (!phone) return;
+            const customer = getCustomer(phone);
+            customer.loyalty += points;
+            customer.lastVisit = Date.now();
+            
+            // Add activity record
+            addActivity(phone, `+${points} loyalty points: ${reason}`, 'loyalty');
+            
+            showToast(`✅ +${points} loyalty points: ${reason}`);
+            updateActivitySidebar();
+        }
+
+        function addActivity(phone, description, type) {
+            if (!phone) return;
+            const customer = getCustomer(phone);
+            const activity = {
+                id: 'act_' + Date.now(),
+                description: description,
+                type: type,
+                timestamp: Date.now(),
+                points: type === 'loyalty' ? parseInt(description.match(/\d+/)?.[0] || 0) : 0
+            };
+            
+            customer.activities.unshift(activity);
+            
+            // Keep only last 10 activities
+            if (customer.activities.length > 10) {
+                customer.activities = customer.activities.slice(0, 10);
+            }
+        }
+
+        // Simplified Table SVG Generator for Customer View
+        function createSimpleTableSVG(template, status, tableNumber) {
+            const colors = {
+                available: '#22C55E',
+                reserved: '#FACC15', 
+                awaiting: '#FB923C',
+                occupied: '#EF4444',
+                cleaning: '#3B82F6'
+            };
+            
+            const tpl = tableTemplates[template];
+            if (!tpl) return '';
+
+            const color = colors[status] || colors.available;
+            const { width, height, shape, seats } = tpl;
+            const viewBoxWidth = width + 20;
+            const viewBoxHeight = height + 20;
+            const centerX = viewBoxWidth / 2;
+            const centerY = viewBoxHeight / 2;
+
+            let svg = `<svg width="${viewBoxWidth}" height="${viewBoxHeight}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}">`;
+            
+            // Add shadow filter
+            svg += `<defs>
+                <filter id="simple-shadow-${template}" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.2)"/>
+                </filter>
+            </defs>`;
+
+            if (shape === 'square') {
+                const tableSize = Math.min(width, height) - 20;
+                const tableX = (viewBoxWidth - tableSize) / 2;
+                const tableY = (viewBoxHeight - tableSize) / 2;
+                
+                svg += `<rect x="${tableX}" y="${tableY}" width="${tableSize}" height="${tableSize}" 
+                    rx="8" fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#simple-shadow-${template})"/>`;
+                
+            } else if (shape === 'round') {
+                const radius = Math.min(width, height) / 2 - 10;
+                
+                svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#simple-shadow-${template})"/>`;
+                
+            } else if (shape === 'rect') {
+                const tableWidth = width - 20;
+                const tableHeight = height - 20;
+                const tableX = 10;
+                const tableY = 10;
+                
+                svg += `<rect x="${tableX}" y="${tableY}" width="${tableWidth}" height="${tableHeight}" 
+                    rx="12" fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#simple-shadow-${template})"/>`;
+                
+            } else if (shape === 'sofa') {
+                const mainWidth = width - 30;
+                const mainHeight = height - 30;
+                
+                // Main sofa body
+                svg += `<path d="M 15 15 L ${15 + mainWidth} 15 L ${15 + mainWidth} ${15 + mainHeight * 0.6} 
+                    L ${15 + mainWidth * 0.7} ${15 + mainHeight * 0.6} L ${15 + mainWidth * 0.7} ${15 + mainHeight} 
+                    L 15 ${15 + mainHeight} Z" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#simple-shadow-${template})"/>`;
+                
+                // Add backrest
+                svg += `<rect x="15" y="15" width="${mainWidth}" height="8" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+                
+                // Add armrests
+                svg += `<rect x="15" y="15" width="8" height="${mainHeight * 0.6}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+                svg += `<rect x="${15 + mainWidth - 8}" y="15" width="8" height="${mainHeight * 0.6}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+            }
+            
+            // Add table number in center
+            svg += `<text x="${centerX}" y="${centerY + 2}" text-anchor="middle" 
+                fill="white" font-size="${seats > 6 ? '18' : '16'}" font-weight="bold" 
+                text-shadow="1px 1px 2px rgba(0,0,0,0.5)">${tableNumber || seats}</text>`;
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // Professional Table SVG Generator for Staff View
+        function createTableSVG(template, status, tableNumber) {
+            const colors = {
+                available: '#22C55E',
+                reserved: '#FACC15', 
+                awaiting: '#FB923C',
+                occupied: '#EF4444',
+                cleaning: '#3B82F6'
+            };
+            
+            const tpl = tableTemplates[template];
+            if (!tpl) return '';
+
+            const color = colors[status] || colors.available;
+            const { width, height, shape, seats } = tpl;
+            const viewBoxWidth = width + 20;
+            const viewBoxHeight = height + 20;
+            const centerX = viewBoxWidth / 2;
+            const centerY = viewBoxHeight / 2;
+
+            let svg = `<svg width="${viewBoxWidth}" height="${viewBoxHeight}" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}">`;
+            
+            // Add shadow and glow filters
+            svg += `<defs>
+                <filter id="shadow-${template}" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="rgba(0,0,0,0.2)"/>
+                </filter>
+                <filter id="glow-${template}" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge> 
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>`;
+
+            if (shape === 'square') {
+                const tableSize = Math.min(width, height) - 20;
+                const tableX = (viewBoxWidth - tableSize) / 2;
+                const tableY = (viewBoxHeight - tableSize) / 2;
+                
+                svg += `<rect x="${tableX}" y="${tableY}" width="${tableSize}" height="${tableSize}" 
+                    rx="8" fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#glow-${template})"/>`;
+                
+                // Add chairs
+                const chairPositions = [
+                    { x: centerX, y: tableY - 8 },
+                    { x: centerX, y: tableY + tableSize + 8 },
+                    { x: tableX - 8, y: centerY },
+                    { x: tableX + tableSize + 8, y: centerY }
+                ];
+                chairPositions.slice(0, seats).forEach(pos => {
+                    svg += `<circle cx="${pos.x}" cy="${pos.y}" r="8" fill="#4B5563" stroke="#1F2937" stroke-width="2" 
+                        filter="url(#shadow-${template})" opacity="0.9"/>`;
+                });
+                
+            } else if (shape === 'round') {
+                const radius = Math.min(width, height) / 2 - 10;
+                
+                svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#glow-${template})"/>`;
+                
+                // Add chairs around circle
+                for (let i = 0; i < seats; i++) {
+                    const angle = (i * 2 * Math.PI) / seats - Math.PI / 2;
+                    const chairX = centerX + (radius + 12) * Math.cos(angle);
+                    const chairY = centerY + (radius + 12) * Math.sin(angle);
+                    svg += `<circle cx="${chairX}" cy="${chairY}" r="8" fill="#4B5563" stroke="#1F2937" stroke-width="2" 
+                        filter="url(#shadow-${template})" opacity="0.9"/>`;
+                }
+                
+            } else if (shape === 'rect') {
+                const tableWidth = width - 20;
+                const tableHeight = height - 20;
+                const tableX = 10;
+                const tableY = 10;
+                
+                svg += `<rect x="${tableX}" y="${tableY}" width="${tableWidth}" height="${tableHeight}" 
+                    rx="12" fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#glow-${template})"/>`;
+                
+                // Add chairs along rectangle
+                const chairsPerSide = Math.ceil(seats / 2);
+                for (let i = 0; i < seats; i++) {
+                    let chairX, chairY;
+                    if (i < chairsPerSide) {
+                        chairX = tableX + (tableWidth * (i + 1)) / (chairsPerSide + 1);
+                        chairY = tableY - 8;
+                    } else {
+                        chairX = tableX + (tableWidth * (seats - i)) / (chairsPerSide + 1);
+                        chairY = tableY + tableHeight + 8;
+                    }
+                    svg += `<circle cx="${chairX}" cy="${chairY}" r="8" fill="#4B5563" stroke="#1F2937" stroke-width="2" 
+                        filter="url(#shadow-${template})" opacity="0.9"/>`;
+                }
+                
+            } else if (shape === 'sofa') {
+                const mainWidth = width - 30;
+                const mainHeight = height - 30;
+                
+                // Main sofa body with better visibility
+                svg += `<path d="M 15 15 L ${15 + mainWidth} 15 L ${15 + mainWidth} ${15 + mainHeight * 0.6} 
+                    L ${15 + mainWidth * 0.7} ${15 + mainHeight * 0.6} L ${15 + mainWidth * 0.7} ${15 + mainHeight} 
+                    L 15 ${15 + mainHeight} Z" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="3" filter="url(#glow-${template})"/>`;
+                
+                // Add backrest
+                svg += `<rect x="15" y="15" width="${mainWidth}" height="8" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+                
+                // Add armrests
+                svg += `<rect x="15" y="15" width="8" height="${mainHeight * 0.6}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+                svg += `<rect x="${15 + mainWidth - 8}" y="15" width="8" height="${mainHeight * 0.6}" 
+                    fill="${color}" stroke="#E5E7EB" stroke-width="2" opacity="0.8"/>`;
+                
+                // Add cushions with better visibility
+                for (let i = 0; i < seats; i++) {
+                    const cushionX = 25 + (i % 3) * (mainWidth * 0.25);
+                    const cushionY = 25 + Math.floor(i / 3) * (mainHeight * 0.4);
+                    svg += `<circle cx="${cushionX}" cy="${cushionY}" r="6" fill="#6B7280" stroke="#374151" stroke-width="1.5" 
+                        filter="url(#shadow-${template})" opacity="0.9"/>`;
+                }
+            }
+            
+            // Add seat count
+            svg += `<text x="${centerX}" y="${centerY + 2}" text-anchor="middle" 
+                fill="white" font-size="${seats > 6 ? '18' : '16'}" font-weight="bold" 
+                text-shadow="1px 1px 2px rgba(0,0,0,0.5)">${tableNumber || seats}</text>`;
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // Queue Management
+        function getQueue(tableId) {
+            const q = db.queues[restaurantId];
+            if (!q[tableId]) q[tableId] = [];
+            return q[tableId];
+        }
+
+        function estimateWait(tableId) {
+            const avgDiningMin = 42;
+            const cleaningMin = 5;
+            const table = db.tables[restaurantId][tableId];
+            const q = getQueue(tableId);
+            const ahead = q.length;
+            
+            let baseWait = 0;
+            
+            if (table.status === 'occupied' && table.reserved_at) {
+                const elapsedMin = Math.floor((Date.now() - table.reserved_at) / 60000);
+                baseWait = Math.max(5, avgDiningMin - elapsedMin) + cleaningMin;
+            } else if (table.status === 'cleaning' && table.cleaning_until) {
+                const remainingCleaningMin = Math.max(0, Math.ceil((table.cleaning_until - Date.now()) / 60000));
+                baseWait = remainingCleaningMin;
+            } else {
+                baseWait = avgDiningMin + cleaningMin;
+            }
+            
+            return baseWait + (ahead * (avgDiningMin + cleaningMin));
+        }
+
+        // Customer Table Map Rendering
+        function renderTableMap() {
+            console.log('Rendering table map with tables:', Object.keys(db.tables[restaurantId]).length);
+            const mapContainer = document.getElementById('tableMap');
+            const restaurant = db.restaurants[restaurantId];
+            
+            // Prepare stage
+            const stage = getOrCreateMapStage(mapContainer);
+            // Set background on stage so it scales with transform
+            if (restaurant.floor_plan_image_url) {
+                const imageUrl = restaurant.floor_plan_image_url.startsWith('http')
+                    ? restaurant.floor_plan_image_url
+                    : restaurant.floor_plan_image_url;
+                stage.style.backgroundImage = `url(${imageUrl})`;
+            } else {
+                stage.style.backgroundImage = 'none';
+            }
+            
+            // Scale to fit
+            scaleStageToFit(mapContainer, stage, 1);
+            
+            const tables = db.tables[restaurantId];
+            for (let tableId in tables) {
+                const table = tables[tableId];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-icon-wrapper';
+                wrapper.setAttribute('data-status', table.status);
+                wrapper.style.left = table.position.x + 'px';
+                wrapper.style.top = table.position.y + 'px';
+                wrapper.style.transform = `rotate(${table.rotation || 0}deg)`;
+                
+                if (table.status === 'cleaning') {
+                    wrapper.style.pointerEvents = 'none';
+                    wrapper.style.opacity = '0.7';
+                }
+                
+                wrapper.innerHTML = createSimpleTableSVG(table.template, table.status, table.number);
+                
+                // Wait time for occupied tables
+                if (table.status === 'occupied' && table.reserved_at) {
+                    const waitDiv = document.createElement('div');
+                    waitDiv.className = 'table-wait-time';
+                    waitDiv.id = 'wait-' + tableId;
+                    const elapsedMin = Math.floor((Date.now() - table.reserved_at) / 60000);
+                    const remainingMin = Math.max(5, 42 - elapsedMin);
+                    waitDiv.textContent = `~${remainingMin} min wait`;
+                    wrapper.appendChild(waitDiv);
+                }
+                
+                // Click handlers
+                if (table.status === 'available') {
+                    wrapper.style.cursor = 'pointer';
+                    wrapper.addEventListener('click', () => openReservationModal(table));
+                } else if (table.status === 'occupied') {
+                    wrapper.style.cursor = 'pointer';
+                    wrapper.addEventListener('click', () => openQueueModal(table));
+                } else if (table.status === 'reserved') {
+                    wrapper.style.cursor = 'pointer';
+                    wrapper.addEventListener('click', () => {
+                        const mins = Math.ceil((table.expires_at - Date.now()) / 60000);
+                        showToast(`ℹ️ Reserved, available in ~${Math.max(mins, 1)} min`, 'info');
+                    });
+                }
+                
+                stage.appendChild(wrapper);
+            }
+            
+            updateTimers();
+        }
+
+        // Timer Updates
+        function updateTimers() {
+            const tables = db.tables[restaurantId];
+            
+            for (let tableId in tables) {
+                const table = tables[tableId];
+                
+                // Update occupied wait times
+                if (table.status === 'occupied' && table.reserved_at) {
+                    const waitEl = document.getElementById('wait-' + tableId);
+                    const waitStaffEl = document.getElementById('wait-staff-' + tableId);
+                    const elapsedMin = Math.floor((Date.now() - table.reserved_at) / 60000);
+                    const remainingMin = Math.max(5, 42 - elapsedMin);
+                    
+                    if (waitEl) {
+                        waitEl.textContent = `~${remainingMin} min wait`;
+                    }
+                    if (waitStaffEl) {
+                        waitStaffEl.textContent = `~${remainingMin} min wait`;
+                    }
+                }
+                
+                // Handle reservation expiry
+                if (table.status === 'reserved' && table.expires_at && Date.now() >= table.expires_at && !table.customer_confirmed) {
+                    table.status = 'available';
+                    table.reserved_by = { name: '', phone: '' };
+                    table.reserved_at = null;
+                    table.expires_at = null;
+                    renderTableMap();
+                    renderStaffDashboard();
+                }
+                
+                // Handle cleaning completion
+                if (table.status === 'cleaning' && table.cleaning_until && Date.now() >= table.cleaning_until) {
+                    const q = getQueue(tableId);
+                    if (q.length > 0) {
+                        const next = q.shift();
+                        table.status = 'reserved';
+                        table.reserved_by = { name: next.name, phone: next.phone };
+                        table.reserved_at = Date.now();
+                        table.expires_at = Date.now() + 10 * 60 * 1000;
+                        table.customer_confirmed = false;
+                        table.staff_confirmed = false;
+                        table.preorder = next.preorder || [];
+                        
+                        if (myQueue && myQueue.id === next.id) {
+                            myReservationId = tableId;
+                            myQueue = null;
+                            showToast('🎉 Your table is ready! Reserved for 10 minutes.');
+                        }
+                        
+                        addNotification('queue_table_ready', tableId);
+                        // Persist promotion + notification
+                        saveState();
+                    } else {
+                        table.status = 'available';
+                        table.reserved_by = { name: '', phone: '' };
+                        table.reserved_at = null;
+                        table.expires_at = null;
+                    }
+                    table.cleaning_until = null;
+                    renderTableMap();
+                    renderStaffDashboard();
+                    // Persist cleaning completion
+                    saveState();
+                }
+            }
+            
+            // Process smart queue
+            processSmartQueue();
+        }
+
+        // Smart Queue Processing
+        function processSmartQueue() {
+            const entries = db.smart_queues[restaurantId];
+            if (!entries.length) return;
+            
+            const availableTables = Object.values(db.tables[restaurantId])
+                .filter(t => t.status === 'available');
+            
+            for (let i = entries.length - 1; i >= 0; i--) {
+                const entry = entries[i];
+                const suitableTables = availableTables.filter(t => {
+                    if (t.seats < entry.party) return false;
+                    if (entry.prefer === 'any') return true;
+                    
+                    const section = getTableSection(t);
+                    return section === entry.prefer;
+                });
+                
+                if (suitableTables.length > 0) {
+                    // Find smallest suitable table
+                    suitableTables.sort((a, b) => a.seats - b.seats);
+                    const table = suitableTables[0];
+                    
+                    table.status = 'reserved';
+                    table.reserved_by = { name: entry.name, phone: entry.phone };
+                    table.reserved_at = Date.now();
+                    table.expires_at = Date.now() + 10 * 60 * 1000;
+                    table.customer_confirmed = false;
+                    table.staff_confirmed = false;
+                    
+                    entries.splice(i, 1);
+                    addNotification('queue_table_ready', table.id);
+                    // Persist promotion and notification
+                    saveState();
+
+                    renderTableMap();
+                    renderStaffDashboard();
+                }
+            }
+        }
+
+        function getTableSection(table) {
+            const y = table.position.y;
+            if (y < 180) return 'terrace';
+            if (y < 320) return 'main';
+            return 'vip';
+        }
+
+        // Modal Functions
+        function openReservationModal(table) {
+            selectedTableForReservation = table;
+            document.getElementById('modalTableNumber').textContent = table.number;
+            document.getElementById('modalTableSeats').textContent = table.seats;
+            document.getElementById('reservationModal').classList.add('active');
+        }
+
+        function openQueueModal(table) {
+            selectedTableForQueue = table;
+            const qLen = getQueue(table.id).length;
+            
+            if (qLen >= 2) {
+                document.getElementById('smartQueueModal').classList.add('active');
+                return;
+            }
+            
+            document.getElementById('queueTableNumber').textContent = table.number;
+            document.getElementById('queueAhead').textContent = qLen;
+            const eta = Math.max(5, Math.round(estimateWait(table.id)));
+            document.getElementById('queueEta').textContent = `~${eta} min`;
+            document.getElementById('queueModal').classList.add('active');
+        }
+
+        // Reservation Handling
+        document.getElementById('reserveBtn').addEventListener('click', () => {
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const party = parseInt(document.getElementById('customerParty').value);
+            
+            if (!name || !phone || !party) {
+                showToast('⚠️ Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (party > selectedTableForReservation.seats) {
+                showToast(`⚠️ Party size (${party}) exceeds table capacity (${selectedTableForReservation.seats})`, 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            setTimeout(() => {
+                const table = db.tables[restaurantId][selectedTableForReservation.id];
+                table.status = 'reserved';
+                table.reserved_by = { name, phone };
+                table.reserved_at = Date.now();
+                table.expires_at = Date.now() + 10 * 60 * 1000;
+                table.customer_confirmed = false;
+                table.staff_confirmed = false;
+                
+                myReservationId = selectedTableForReservation.id;
+                
+                // Update customer record
+                const customer = getCustomer(phone);
+                customer.name = name;
+                addLoyaltyPoints(phone, 10, 'Table reservation');
+                addActivity(phone, `Reserved Table #${selectedTableForReservation.number}`, 'reservation');
+                
+                document.getElementById('reservationModal').classList.remove('active');
+                clearForm('reservation');
+                
+                hideLoading();
+                showToast('🎉 Table reserved successfully!');
+                
+                // Persist changes
+                saveState();
+
+                renderTableMap();
+                renderMyReservation();
+                updateActivitySidebar();
+            }, 1000);
+        });
+
+        // Queue Handling
+        document.getElementById('joinQueueBtn').addEventListener('click', () => {
+            const name = document.getElementById('queueName').value.trim();
+            const phone = document.getElementById('queuePhone').value.trim();
+            const party = parseInt(document.getElementById('queueParty').value);
+            
+            if (!name || !phone || !party) {
+                showToast('⚠️ Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (party > selectedTableForQueue.seats) {
+                showToast(`⚠️ Party size (${party}) exceeds table capacity (${selectedTableForQueue.seats})`, 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            setTimeout(() => {
+                const q = getQueue(selectedTableForQueue.id);
+                const id = 'q_' + Date.now();
+                q.push({ id, name, phone, party, joined_at: Date.now(), preorder: [] });
+                
+                myQueue = { tableId: selectedTableForQueue.id, id };
+                
+                const customer = getCustomer(phone);
+                customer.name = name;
+                addActivity(phone, `Joined queue for Table #${selectedTableForQueue.number}`, 'queue');
+
+                // Persist queue state
+                saveState();
+                
+                document.getElementById('queueModal').classList.remove('active');
+                clearForm('queue');
+                
+                hideLoading();
+                showToast(`✅ Joined queue - position #${q.length}`);
+                
+                renderMyReservation();
+                updateActivitySidebar();
+                renderStaffDashboard();
+                
+                // Auto-open menu for pre-ordering
+                setTimeout(() => {
+                    showToast('💡 Browse our menu while you wait!', 'info');
+                    openMenuDrawer();
+                }, 2000);
+            }, 1000);
+        });
+
+        // Smart Queue Handling
+        document.getElementById('smartJoinBtn').addEventListener('click', () => {
+            const name = document.getElementById('smartName').value.trim();
+            const phone = document.getElementById('smartPhone').value.trim();
+            const party = parseInt(document.getElementById('smartParty').value);
+            const prefer = document.getElementById('smartPrefer').value;
+            
+            if (!name || !phone || !party) {
+                showToast('⚠️ Please fill in all fields', 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            setTimeout(() => {
+                const id = 's_' + Date.now();
+                db.smart_queues[restaurantId].push({ id, name, phone, party, prefer, joined_at: Date.now() });
+                // Persist smart queue change
+                saveState();
+                
+                const customer = getCustomer(phone);
+                customer.name = name;
+                addActivity(phone, `Joined Smart Queue (${party} people)`, 'smart_queue');
+                
+                myQueue = { tableId: 'smart', id };
+                
+                document.getElementById('smartQueueModal').classList.remove('active');
+                clearForm('smartQueue');
+                
+                hideLoading();
+                
+                // Show confirmation
+                const position = db.smart_queues[restaurantId].length;
+                const confirmationDiv = document.createElement('div');
+                confirmationDiv.className = 'card';
+                confirmationDiv.style.background = 'linear-gradient(135deg, var(--brand-primary), var(--accent-secondary))';
+                confirmationDiv.style.color = 'white';
+                confirmationDiv.innerHTML = `
+                    <h3 style="margin-bottom: 12px;">✨ Smart Queue Confirmed</h3>
+                    <p style="margin-bottom: 8px;">Position #${position} • Party of ${party}</p>
+                    <p style="font-size: 14px; opacity: 0.9;">Preference: ${prefer === 'any' ? 'Any section' : prefer.charAt(0).toUpperCase() + prefer.slice(1)}</p>
+                    <p style="font-size: 14px; margin-top: 12px;">🔔 We'll notify you when a suitable table becomes available</p>
+                `;
+                
+                document.getElementById('myReservation').appendChild(confirmationDiv);
+                
+                showToast('✅ Added to Smart Queue');
+                updateActivitySidebar();
+                renderStaffDashboard();
+                
+                setTimeout(() => openMenuDrawer(), 1500);
+            }, 1000);
+        });
+
+        // My Reservation Rendering
+        function renderMyReservation() {
+            const container = document.getElementById('myReservation');
+            container.innerHTML = '';
+            
+            if (myReservationId && db.tables[restaurantId][myReservationId]) {
+                const table = db.tables[restaurantId][myReservationId];
+                container.style.display = 'block';
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                if (table.status === 'reserved') {
+                    const remaining = Math.max(0, table.expires_at - Date.now());
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    
+                    card.innerHTML = `
+                        <h3 style="margin-bottom: 12px;">🎯 Your Reservation</h3>
+                        <p style="margin-bottom: 8px;">Table #${table.number} • ${table.seats} seats</p>
+                        <p style="font-size: 14px; margin-bottom: 16px;">⏱ Time remaining: ${minutes}:${seconds.toString().padStart(2, '0')}</p>
+                        <button class="btn btn-primary" onclick="handleImSeated('${myReservationId}')" style="width: 100%;">I'm Seated at Table</button>
+                    `;
+                } else if (table.status === 'awaiting') {
+                    card.innerHTML = `
+                        <h3 style="margin-bottom: 12px;">⏳ Awaiting Confirmation</h3>
+                        <p style="margin-bottom: 8px;">Table #${table.number} • ${table.seats} seats</p>
+                        <p style="font-size: 14px;">Please wait for staff confirmation...</p>
+                    `;
+                } else if (table.status === 'occupied') {
+                    card.innerHTML = `
+                        <h3 style="margin-bottom: 12px;">✅ Enjoy Your Meal!</h3>
+                        <p style="margin-bottom: 8px;">Table #${table.number} • ${table.seats} seats</p>
+                        <p style="font-size: 14px; margin-bottom: 16px;">Your table is confirmed. Have a wonderful dining experience!</p>
+                        <button class="btn btn-secondary" onclick="openMenuDrawer()" style="width: 100%; margin-bottom: 8px;">Browse Menu</button>
+                    `;
+                }
+                
+                container.appendChild(card);
+            } else if (myQueue) {
+                container.style.display = 'block';
+                
+                if (myQueue.tableId === 'smart') {
+                    // Smart queue status is handled in smartJoinBtn click handler
+                } else {
+                    const q = getQueue(myQueue.tableId);
+                    const myIndex = q.findIndex(item => item.id === myQueue.id);
+                    
+                    if (myIndex !== -1) {
+                        const table = db.tables[restaurantId][myQueue.tableId];
+                        const eta = Math.max(5, Math.round(estimateWait(myQueue.tableId)));
+                        const myQueueItem = q[myIndex];
+                        const customer = getCustomer(myQueueItem.phone);
+                        
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = `
+                            <h3 style="margin-bottom: 12px;">📋 Your Queue Status</h3>
+                            <p style="margin-bottom: 8px;">Waiting for Table #${table.number} • Position #${myIndex + 1}</p>
+                            <p style="font-size: 14px; margin-bottom: 16px;">⏱ Estimated wait: ~${eta} minutes</p>
+                            <button class="btn btn-secondary" onclick="openMenuDrawer()" style="width: 100%; margin-bottom: 8px;">Browse Menu & Pre-Order</button>
+                            <p style="font-size: 12px; color: var(--text-secondary); text-align: center;">⭐ Loyalty Points: ${customer.loyalty}</p>
+                        `;
+                        
+                        container.appendChild(card);
+                    }
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // Handle "I'm Seated" action
+        window.handleImSeated = function(tableId) {
+            showLoading();
+            
+            setTimeout(() => {
+                const table = db.tables[restaurantId][tableId];
+                table.status = 'awaiting';
+                table.customer_confirmed = true;
+                
+                // Add activity for customer confirmation
+                if (table.reserved_by.phone) {
+                    addActivity(table.reserved_by.phone, `Confirmed seated at Table #${table.number}`, 'seated');
+                }
+                
+                addNotification('customer_seated', tableId);
+                
+                hideLoading();
+                showToast('✅ Confirmation sent to staff');
+                
+                renderTableMap();
+                renderMyReservation();
+                renderStaffDashboard();
+            }, 800);
+        };
+
+        // Menu & Pre-order System
+        function openMenuDrawer() {
+            if (!myQueue && !myReservationId) {
+                showToast('ℹ️ Please reserve a table or join a queue first', 'info');
+                return;
+            }
+            
+            renderMenuList();
+            renderCart();
+            document.getElementById('menuDrawer').style.right = '0px';
+        }
+
+        function renderMenuList() {
+            const menuList = document.getElementById('menuList');
+            const categories = ['Starters', 'Mains', 'Desserts', 'Drinks'];
+            
+            menuList.innerHTML = '';
+            
+            categories.forEach(category => {
+                const categoryItems = db.menu.filter(item => item.category === category);
+                if (categoryItems.length === 0) return;
+                
+                const categoryHeader = document.createElement('h4');
+                categoryHeader.textContent = category;
+                categoryHeader.style.cssText = 'margin: 20px 0 12px 0; color: var(--text-primary); font-weight: 700;';
+                menuList.appendChild(categoryHeader);
+                
+                categoryItems.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px;';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <div style="font-weight: 600; margin-bottom: 4px;">${item.name}</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">SAR ${item.price}</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="addToCart('${item.id}')" style="padding: 8px 12px;">Add</button>
+                    `;
+                    menuList.appendChild(itemDiv);
+                });
+            });
+        }
+
+        window.addToCart = function(itemId) {
+            if (!myQueue && !myReservationId) {
+                showToast('⚠️ Please reserve a table first', 'error');
+                return;
+            }
+            
+            const item = db.menu.find(m => m.id === itemId);
+            const cart = getMyCart();
+            const existing = cart.find(c => c.id === itemId);
+            
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+            }
+            
+            renderCart();
+            showToast(`✅ Added ${item.name} to pre-order`);
+        };
+
+        function getMyCart() {
+            if (myQueue && myQueue.tableId !== 'smart') {
+                const q = getQueue(myQueue.tableId);
+                const myItem = q.find(item => item.id === myQueue.id);
+                if (myItem) {
+                    if (!myItem.preorder) myItem.preorder = [];
+                    return myItem.preorder;
+                }
+            } else if (myReservationId) {
+                const table = db.tables[restaurantId][myReservationId];
+                if (table) {
+                    if (!table.preorder) table.preorder = [];
+                    return table.preorder;
+                }
+            }
+            return [];
+        }
+
+        function renderCart() {
+            const cart = getMyCart();
+            const cartList = document.getElementById('cartList');
+            const cartTotal = document.getElementById('cartTotal');
+            const preorderBtn = document.getElementById('placePreorderBtn');
+            
+            if (cart.length === 0) {
+                cartList.textContent = 'No items yet';
+                cartTotal.textContent = 'Total: SAR 0';
+                preorderBtn.textContent = 'Place Pre-Order';
+                preorderBtn.disabled = true;
+                preorderBtn.style.opacity = '0.5';
+            } else {
+                cartList.innerHTML = cart.map(item => 
+                    `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span>${item.name} × ${item.qty}</span>
+                        <span>SAR ${item.price * item.qty}</span>
+                    </div>`
+                ).join('');
+                
+                const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                cartTotal.textContent = `Total: SAR ${total}`;
+                preorderBtn.textContent = cart.length > 0 && cart.some(item => item.placed) ? 'Update Pre-Order' : 'Place Pre-Order';
+                preorderBtn.disabled = false;
+                preorderBtn.style.opacity = '1';
+            }
+        }
+
+        document.getElementById('placePreorderBtn').addEventListener('click', () => {
+            const cart = getMyCart();
+            if (cart.length === 0) return;
+            
+            showLoading();
+            
+            setTimeout(() => {
+                cart.forEach(item => item.placed = true);
+                
+                // Add loyalty points for pre-ordering
+                if (myQueue) {
+                    const q = getQueue(myQueue.tableId);
+                    const myItem = q.find(item => item.id === myQueue.id);
+                    if (myItem && myItem.phone) {
+                        addLoyaltyPoints(myItem.phone, 20, 'Pre-order placed');
+                        addActivity(myItem.phone, `Placed pre-order (${cart.length} items)`, 'preorder');
+                    }
+                } else if (myReservationId) {
+                    const table = db.tables[restaurantId][myReservationId];
+                    if (table && table.reserved_by.phone) {
+                        addLoyaltyPoints(table.reserved_by.phone, 20, 'Pre-order placed');
+                        addActivity(table.reserved_by.phone, `Placed pre-order (${cart.length} items)`, 'preorder');
+                    }
+                }
+                
+                hideLoading();
+                showToast('🍽️ Pre-order placed successfully!');
+                // Persist pre-order state
+                saveState();
+                
+                renderCart();
+                updateActivitySidebar();
+                
+                // Update status indicator
+                document.getElementById('preorderStatus').innerHTML = `
+                    <div style="background: #D1FAE5; color: #065F46; padding: 8px 12px; border-radius: 6px; font-weight: 600;">
+                        ✅ Pre-Order Placed
+                    </div>
+                `;
+            }, 1200);
+        });
+
+        // Menu drawer close
+        document.getElementById('menuDrawerClose').addEventListener('click', () => {
+            document.getElementById('menuDrawer').style.right = '-420px';
+        });
+
+        // Staff Dashboard Functions
+        function renderStaffDashboard() {
+            renderNotifications();
+            renderQueuePanel();
+            renderStaffMap();
+            renderTablesGrid();
+        }
+
+        function renderNotifications() {
+            const notifications = db.notifications[restaurantId];
+            const unreadNotifs = Object.entries(notifications).filter(([id, notif]) => !notif.read);
+            
+            const notifSection = document.getElementById('notificationsSection');
+            const notifCount = document.getElementById('notifCount');
+            const notifList = document.getElementById('notificationsList');
+            
+            if (unreadNotifs.length === 0) {
+                notifSection.style.display = 'none';
+                return;
+            }
+            
+            notifSection.style.display = 'block';
+            notifCount.textContent = unreadNotifs.length;
+            notifList.innerHTML = '';
+            
+            unreadNotifs.forEach(([notifId, notif]) => {
+                const table = Object.values(db.tables[restaurantId]).find(t => t.id === notif.table_id);
+                if (!table) return;
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.background = '#FEF3C7';
+                card.style.borderLeft = '4px solid var(--warning)';
+                
+                let message = '';
+                if (notif.type === 'customer_seated') {
+                    message = `Customer reports seated at Table #${table.number}. Please confirm.`;
+                } else if (notif.type === 'queue_table_ready') {
+                    message = `Queue customer has been assigned Table #${table.number}.`;
+                }
+                
+                card.innerHTML = `
+                    <p style="font-weight: 600; color: #78350F; margin-bottom: 12px;">${message}</p>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="confirmSeated('${table.id}', '${notifId}')" style="padding: 8px 16px;">✅ Confirm</button>
+                        <button class="btn" onclick="releaseTable('${table.id}', '${notifId}')" style="background: var(--danger); color: white; padding: 8px 16px;">❌ Release</button>
+                    </div>
+                `;
+                
+                notifList.appendChild(card);
+            });
+        }
+
+        function renderQueuePanel() {
+            const panel = document.getElementById('queuePanel');
+            const queues = db.queues[restaurantId];
+            const smartQueue = db.smart_queues[restaurantId];
+            
+            let html = '';
+            let hasQueues = false;
+            
+            // Regular table queues
+            for (const [tableId, queue] of Object.entries(queues)) {
+                if (!queue || queue.length === 0) continue;
+                
+                const table = db.tables[restaurantId][tableId];
+                if (!table) continue;
+                
+                hasQueues = true;
+                const first = queue[0];
+                html += `<div style="font-size: 12px; margin-bottom: 6px; padding: 6px 8px; background: var(--bg-primary); border-radius: 4px;">
+                    <strong>Table #${table.number}:</strong> ${first.name} (${first.party} people)
+                </div>`;
+            }
+            
+            // Smart queue
+            if (smartQueue.length > 0) {
+                hasQueues = true;
+                html += `<div style="margin-top: 12px; font-weight: 600; font-size: 13px;">Smart Queue (${smartQueue.length})</div>`;
+                smartQueue.slice(0, 5).forEach(entry => {
+                    html += `<div style="font-size: 12px; margin-bottom: 4px; padding: 4px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px;">
+                        ${entry.name} • ${entry.party}p • ${entry.prefer}
+                    </div>`;
+                });
+            }
+            
+            if (!hasQueues) {
+                html = '<div style="font-size: 13px; color: var(--text-secondary);">No active queues</div>';
+            }
+            
+            panel.innerHTML = html;
+        }
+
+        function renderStaffMap() {
+            console.log('Rendering staff map with tables:', Object.keys(db.tables[restaurantId]).length);
+            const mapContainer = document.getElementById('staffMap');
+            const restaurant = db.restaurants[restaurantId];
+            
+            // Prepare stage
+            const stage = getOrCreateMapStage(mapContainer);
+            if (restaurant.floor_plan_image_url) {
+                const imageUrl = restaurant.floor_plan_image_url.startsWith('http')
+                    ? restaurant.floor_plan_image_url
+                    : restaurant.floor_plan_image_url;
+                stage.style.backgroundImage = `url(${imageUrl})`;
+            } else {
+                stage.style.backgroundImage = 'none';
+            }
+
+            const INTERACTIVE = false;
+
+            // Scale stage based on container and zoom controls
+            scaleStageToFit(mapContainer, stage, staffMapZoom);
+            
+            const tables = db.tables[restaurantId];
+            for (let tableId in tables) {
+                const table = tables[tableId];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'staff-table';
+                wrapper.style.left = table.position.x + 'px';
+                wrapper.style.top = table.position.y + 'px';
+                wrapper.style.transform = `rotate(${table.rotation || 0}deg)`;
+                wrapper.dataset.tableId = tableId;
+                
+                wrapper.innerHTML = createTableSVG(table.template, table.status, table.number) + 
+                    `<button class="delete-btn" onclick="deleteTable('${tableId}')" title="Delete Table">×</button>`;
+                
+                // Staff view: Add table number label and wait time if occupied
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'table-number';
+                numberDiv.textContent = '#' + table.number;
+                wrapper.appendChild(numberDiv);
+                
+                // Wait time for occupied tables in staff view
+                if (table.status === 'occupied' && table.reserved_at) {
+                    const waitDiv = document.createElement('div');
+                    waitDiv.className = 'table-wait-time';
+                    waitDiv.id = 'wait-staff-' + tableId;
+                    const elapsedMin = Math.floor((Date.now() - table.reserved_at) / 60000);
+                    const remainingMin = Math.max(5, 42 - elapsedMin);
+                    waitDiv.textContent = `~${remainingMin} min wait`;
+                    wrapper.appendChild(waitDiv);
+                }
+                
+                // Make draggable (disabled when INTERACTIVE is false)
+                if (INTERACTIVE) {
+                    makeDraggable(wrapper, stage);
+                }
+                
+                // Right-click for rotation (disabled when INTERACTIVE is false)
+                if (INTERACTIVE) {
+                    wrapper.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        showRotationMenu(e, tableId);
+                    });
+                }
+                
+                stage.appendChild(wrapper);
+            }
+        }
+
+        function makeDraggable(element, container) {
+            // Prevent duplicate event listeners
+            if (element.dataset.draggable === 'true') return;
+            element.dataset.draggable = 'true';
+            
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            element.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('delete-btn')) return;
+                
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = parseInt(element.style.left);
+                initialY = parseInt(element.style.top);
+                
+                element.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                
+                const newX = Math.max(0, Math.min(initialX + dx, container.offsetWidth - 100));
+                const newY = Math.max(0, Math.min(initialY + dy, container.offsetHeight - 100));
+                
+                element.style.left = newX + 'px';
+                element.style.top = newY + 'px';
+                
+                // Update database
+                const tableId = element.dataset.tableId;
+                if (tableId && db.tables[restaurantId][tableId]) {
+                    db.tables[restaurantId][tableId].position.x = newX;
+                    db.tables[restaurantId][tableId].position.y = newY;
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    element.style.cursor = 'move';
+                    renderTableMap(); // Update customer view
+                    // Persist updated positions
+                    saveState();
+                }
+            });
+        }
+
+        function setupDragAndDrop(container) {
+            if (typeof INTERACTIVE !== 'undefined' && !INTERACTIVE) return;
+            // Prevent duplicate event listeners
+            if (container.dataset.dragSetup === 'true') return;
+            container.dataset.dragSetup = 'true';
+            
+            container.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+            
+            container.addEventListener('drop', (e) => {
+                e.preventDefault();
+                
+                const template = e.dataTransfer.getData('text/plain');
+                if (!tableTemplates[template]) return;
+                
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const tables = db.tables[restaurantId];
+                const maxNumber = Math.max(0, ...Object.values(tables).map(t => t.number));
+                const newTableId = 'table_' + Date.now();
+                
+                tables[newTableId] = {
+                    id: newTableId,
+                    number: maxNumber + 1,
+                    template: template,
+                    seats: tableTemplates[template].seats,
+                    status: 'available',
+                    position: { x: Math.round(x), y: Math.round(y) },
+                    rotation: 0,
+                    reserved_by: { name: '', phone: '' },
+                    reserved_at: null,
+                    expires_at: null,
+                    customer_confirmed: false,
+                    staff_confirmed: false,
+                    preorder: []
+                };
+                
+                renderStaffMap();
+                renderTablesGrid();
+                renderTableMap();
+                // Persist newly added table
+                saveState();
+                
+                showToast(`✅ Added Table #${maxNumber + 1}`);
+            });
+        }
+
+        // Drag items setup
+        document.querySelectorAll('.drag-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.dataset.template);
+            });
+        });
+
+        // Rotation menu
+        function showRotationMenu(e, tableId) {
+            const menu = document.getElementById('rotationMenu');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            rotationMenuTarget = tableId;
+            
+            // Close menu when clicking elsewhere
+            setTimeout(() => {
+                document.addEventListener('click', hideRotationMenu, { once: true });
+            }, 10);
+        }
+
+        function hideRotationMenu() {
+            document.getElementById('rotationMenu').style.display = 'none';
+            rotationMenuTarget = null;
+        }
+
+        // Rotation actions
+        document.querySelectorAll('.rotation-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                if (!rotationMenuTarget) return;
+                
+                const table = db.tables[restaurantId][rotationMenuTarget];
+                if (!table) return;
+                
+                const action = item.dataset.action;
+                
+                switch (action) {
+                    case 'rotate45':
+                        table.rotation = (table.rotation + 45) % 360;
+                        break;
+                    case 'rotate90':
+                        table.rotation = (table.rotation + 90) % 360;
+                        break;
+                    case 'rotate180':
+                        table.rotation = (table.rotation + 180) % 360;
+                        break;
+                    case 'flip':
+                        table.rotation = (180 - table.rotation + 360) % 360;
+                        break;
+                    case 'reset':
+                        table.rotation = 0;
+                        break;
+                }
+                
+                renderStaffMap();
+                renderTableMap();
+                hideRotationMenu();
+                // Persist rotation
+                saveState();
+                
+                showToast(`🔄 Table #${table.number} rotated`);
+            });
+        });
+
+        // Zoom controls
+        document.getElementById('zoomInBtn').addEventListener('click', () => {
+            if (typeof INTERACTIVE !== 'undefined' && !INTERACTIVE) return;
+            staffMapZoom = Math.min(2, staffMapZoom + 0.2);
+            renderStaffMap();
+        });
+
+        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+            if (typeof INTERACTIVE !== 'undefined' && !INTERACTIVE) return;
+            staffMapZoom = Math.max(0.5, staffMapZoom - 0.2);
+            renderStaffMap();
+        });
+
+        document.getElementById('resetZoomBtn').addEventListener('click', () => {
+            if (typeof INTERACTIVE !== 'undefined' && !INTERACTIVE) return;
+            staffMapZoom = 1;
+            renderStaffMap();
+        });
+
+        // Re-scale stages on window resize for both maps
+        window.addEventListener('resize', () => {
+            const tableMap = document.getElementById('tableMap');
+            const staffMap = document.getElementById('staffMap');
+            const tableStage = tableMap && tableMap.querySelector('.map-stage');
+            const staffStage = staffMap && staffMap.querySelector('.map-stage');
+            if (tableMap && tableStage) scaleStageToFit(tableMap, tableStage, 1);
+            if (staffMap && staffStage) scaleStageToFit(staffMap, staffStage, staffMapZoom);
+        });
+
+        // Tables are now properly loaded from localStorage via loadState() function
+
+        // Table grid rendering
+        function renderTablesGrid() {
+            const grid = document.getElementById('tablesGrid');
+            grid.innerHTML = '';
+            
+            const tables = Object.values(db.tables[restaurantId]);
+            tables.sort((a, b) => a.number - b.number);
+            
+            tables.forEach(table => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.borderLeft = `4px solid ${getStatusColor(table.status)}`;
+                
+                let customerInfo = '';
+                if (table.reserved_by.name) {
+                    customerInfo = `
+                        <div style="margin-bottom: 12px; font-size: 14px;">
+                            <div style="font-weight: 600;">${table.reserved_by.name}</div>
+                            <div style="color: var(--text-secondary);">${table.reserved_by.phone}</div>
+                        </div>
+                    `;
+                }
+                
+                let timer = '';
+                if (table.status === 'occupied' && table.reserved_at) {
+                    const elapsedMin = Math.floor((Date.now() - table.reserved_at) / 60000);
+                    timer = `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">⏱ Occupied for: ${elapsedMin} minutes</div>`;
+                } else if (table.status === 'cleaning' && table.cleaning_until) {
+                    const remaining = Math.max(0, Math.ceil((table.cleaning_until - Date.now()) / 60000));
+                    timer = `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">🧹 Cleaning: ${remaining} min remaining</div>`;
+                }
+                
+                let actions = '';
+                if (table.status === 'awaiting') {
+                    actions = `<button class="btn btn-primary" onclick="confirmSeated('${table.id}')" style="width: 100%; margin-bottom: 8px;">✅ Confirm Seated</button>`;
+                } else if (table.status === 'occupied') {
+                    actions = `<button class="btn btn-secondary" onclick="customerLeft('${table.id}')" style="width: 100%; margin-bottom: 8px;">👋 Customer Left</button>`;
+                } else if (table.status === 'cleaning') {
+                    actions = `<button class="btn btn-primary" onclick="tableReady('${table.id}')" style="width: 100%; margin-bottom: 8px;">✨ Table Ready</button>`;
+                }
+                
+                const queueLength = getQueue(table.id).length;
+                const queueInfo = queueLength > 0 ? `<div style="font-size: 12px; color: var(--accent-secondary); margin-bottom: 8px;">📋 Queue: ${queueLength} waiting</div>` : '';
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                        <div>
+                            <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">Table #${table.number}</h4>
+                            <div style="font-size: 12px; color: var(--text-secondary);">👥 ${table.seats} seats • ${tableTemplates[table.template]?.name || 'Unknown'}</div>
+                        </div>
+                        <button onclick="deleteTable('${table.id}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px;" title="Delete Table">🗑️</button>
+                    </div>
+                    
+                    <div style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-bottom: 12px; background: ${getStatusBgColor(table.status)}; color: ${getStatusTextColor(table.status)};">
+                        ${table.status.toUpperCase()}
+                    </div>
+                    
+                    ${queueInfo}
+                    ${customerInfo}
+                    ${timer}
+                    ${actions}
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                available: '#22C55E',
+                reserved: '#FACC15',
+                awaiting: '#FB923C',
+                occupied: '#EF4444',
+                cleaning: '#3B82F6'
+            };
+            return colors[status] || colors.available;
+        }
+
+        function getStatusBgColor(status) {
+            const colors = {
+                available: '#D1FAE5',
+                reserved: '#FEF3C7',
+                awaiting: '#FED7AA',
+                occupied: '#FEE2E2',
+                cleaning: '#DBEAFE'
+            };
+            return colors[status] || colors.available;
+        }
+
+        function getStatusTextColor(status) {
+            const colors = {
+                available: '#065F46',
+                reserved: '#78350F',
+                awaiting: '#7C2D12',
+                occupied: '#991B1B',
+                cleaning: '#1E40AF'
+            };
+            return colors[status] || colors.available;
+        }
+
+        // Staff actions
+        window.confirmSeated = function(tableId, notifId) {
+            const table = db.tables[restaurantId][tableId];
+            table.status = 'occupied';
+            table.staff_confirmed = true;
+            
+            if (table.reserved_by.phone) {
+                addLoyaltyPoints(table.reserved_by.phone, 50, 'Visit confirmed');
+            }
+            
+            if (notifId) {
+                db.notifications[restaurantId][notifId].read = true;
+            }
+            
+            showToast(`✅ Table #${table.number} confirmed as occupied`);
+            
+            renderStaffDashboard();
+            renderTableMap();
+            renderMyReservation();
+            // Persist state after staff confirms seating
+            saveState();
+        };
+
+        window.customerLeft = function(tableId) {
+            const table = db.tables[restaurantId][tableId];
+            table.status = 'cleaning';
+            table.cleaning_until = Date.now() + 5 * 60 * 1000; // 5 min cleaning
+            
+            showToast(`🧹 Table #${table.number} set to cleaning (5 min)`);
+            
+            renderStaffDashboard();
+            renderTableMap();
+            // Persist cleaning state
+            saveState();
+        };
+
+        window.tableReady = function(tableId) {
+            const table = db.tables[restaurantId][tableId];
+            table.status = 'available';
+            table.reserved_by = { name: '', phone: '' };
+            table.reserved_at = null;
+            table.expires_at = null;
+            table.customer_confirmed = false;
+            table.staff_confirmed = false;
+            table.preorder = [];
+            table.cleaning_until = null;
+            
+            showToast(`✨ Table #${table.number} is now available`);
+            
+            renderStaffDashboard();
+            renderTableMap();
+            // Persist availability change
+            saveState();
+        };
+
+        window.releaseTable = function(tableId, notifId) {
+            tableReady(tableId);
+            
+            if (notifId) {
+                db.notifications[restaurantId][notifId].read = true;
+            }
+            // Persist notification state
+            saveState();
+        };
+
+        window.deleteTable = function(tableId) {
+            if (!confirm('Are you sure you want to delete this table?')) return;
+            
+            const table = db.tables[restaurantId][tableId];
+            delete db.tables[restaurantId][tableId];
+            
+            showToast(`🗑️ Table #${table.number} deleted`);
+            
+            renderStaffDashboard();
+            renderTableMap();
+            // Persist deletion
+            saveState();
+        };
+
+        // Notifications
+        function addNotification(type, tableId) {
+            const notifId = 'notif_' + Date.now();
+            db.notifications[restaurantId][notifId] = {
+                type: type,
+                table_id: tableId,
+                timestamp: Date.now(),
+                read: false
+            };
+            // Persist notification
+            saveState();
+        }
+
+      
+        // Developers can change the path in the restaurant data structure
+
+        // Activity Sidebar
+        function updateActivitySidebar() {
+            const currentStatus = document.getElementById('currentStatus');
+            const preorderStatus = document.getElementById('preorderStatus');
+            const loyaltyStatus = document.getElementById('loyaltyStatus');
+            const recentActivity = document.getElementById('recentActivity');
+            
+            // Current status
+            if (myReservationId) {
+                const table = db.tables[restaurantId][myReservationId];
+                currentStatus.innerHTML = `
+                    <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">Table #${table.number}</div>
+                        <div style="font-size: 14px; color: var(--text-secondary);">Status: ${table.status}</div>
+                        ${table.seats ? `<div style="font-size: 14px; color: var(--text-secondary);">Seats: ${table.seats}</div>` : ''}
+                    </div>
+                `;
+            } else if (myQueue) {
+                if (myQueue.tableId === 'smart') {
+                    currentStatus.innerHTML = `
+                        <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Smart Queue</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">Position: #${db.smart_queues[restaurantId].findIndex(e => e.id === myQueue.id) + 1}</div>
+                        </div>
+                    `;
+                } else {
+                    const q = getQueue(myQueue.tableId);
+                    const table = db.tables[restaurantId][myQueue.tableId];
+                    const position = q.findIndex(item => item.id === myQueue.id) + 1;
+                    
+                    currentStatus.innerHTML = `
+                        <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">Queue for Table #${table.number}</div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">Position: #${position}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                currentStatus.textContent = 'No active reservations';
+            }
+            
+            // Pre-orders
+            const cart = getMyCart();
+            if (cart.length > 0) {
+                const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                preorderStatus.innerHTML = `
+                    <div style="padding: 12px; background: var(--bg-primary); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">${cart.length} items ordered</div>
+                        <div style="font-size: 14px; color: var(--text-secondary);">Total: SAR ${total}</div>
+                    </div>
+                `;
+            } else {
+                preorderStatus.textContent = 'No items ordered';
+            }
+            
+            // Loyalty points
+            let loyaltyPoints = 0;
+            let customerPhone = null;
+            if (myReservationId) {
+                const table = db.tables[restaurantId][myReservationId];
+                if (table.reserved_by.phone) {
+                    customerPhone = table.reserved_by.phone;
+                    loyaltyPoints = getCustomer(table.reserved_by.phone).loyalty;
+                }
+            } else if (myQueue && myQueue.tableId !== 'smart') {
+                const q = getQueue(myQueue.tableId);
+                const myItem = q.find(item => item.id === myQueue.id);
+                if (myItem && myItem.phone) {
+                    customerPhone = myItem.phone;
+                    loyaltyPoints = getCustomer(myItem.phone).loyalty;
+                }
+            }
+            
+            loyaltyStatus.innerHTML = `
+                <div style="padding: 12px; background: linear-gradient(135deg, var(--warning), #FCD34D); border-radius: 8px; color: #78350F;">
+                    <div style="font-weight: 600; font-size: 18px;">⭐ ${loyaltyPoints} points</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Earn more by dining and ordering</div>
+                </div>
+            `;
+            
+            // Recent activities
+            if (customerPhone) {
+                const customer = getCustomer(customerPhone);
+                if (customer.activities && customer.activities.length > 0) {
+                    const recentActivities = customer.activities.slice(0, 5);
+                    recentActivity.innerHTML = recentActivities.map(activity => {
+                        const timeAgo = Math.floor((Date.now() - activity.timestamp) / 60000);
+                        const timeText = timeAgo < 1 ? 'Just now' : `${timeAgo}m ago`;
+                        return `
+                            <div style="padding: 8px; margin-bottom: 6px; background: var(--bg-primary); border-radius: 6px; font-size: 13px;">
+                                <div style="font-weight: 600; margin-bottom: 2px;">${activity.description}</div>
+                                <div style="color: var(--text-secondary); font-size: 11px;">${timeText}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    recentActivity.textContent = 'No recent activity';
+                }
+            } else {
+                recentActivity.textContent = 'No recent activity';
+            }
+        }
+
+        // Chatbot functionality
+        document.getElementById('chatbotToggle').addEventListener('click', () => {
+            document.getElementById('chatbot').classList.add('open');
+            setTimeout(() => document.getElementById('chatbotInput').focus(), 100);
+        });
+
+        document.getElementById('chatbotClose').addEventListener('click', () => {
+            document.getElementById('chatbot').classList.remove('open');
+        });
+
+        function addChatMessage(text, sender = 'ai', isHtml = false) {
+            const messages = document.getElementById('chatbotMessages');
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.textContent = text;
+            }
+            
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Initialize chatbot with welcome message
+        addChatMessage("Hi! I'm Munchie, your dining assistant. Tell me your party size and preferred section (terrace/main/vip) and I'll recommend the perfect table for you!");
+
+        document.getElementById('chatbotSend').addEventListener('click', () => {
+            const input = document.getElementById('chatbotInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            addChatMessage(text, 'user');
+            input.value = '';
+            
+            // Simple AI response logic
+            setTimeout(() => {
+                const response = generateAIResponse(text);
+                addChatMessage(response, 'ai', response.includes('<button'));
+            }, 800);
+        });
+
+        document.getElementById('chatbotInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('chatbotSend').click();
+            }
+        });
+
+        function generateAIResponse(userText) {
+            const availableTables = Object.values(db.tables[restaurantId])
+                .filter(t => t.status === 'available');
+            
+            if (availableTables.length === 0) {
+                return "Sorry, no tables are currently available. Would you like to join our Smart Queue to be automatically assigned the next available table?";
+            }
+            
+            // Extract party size
+            const partyMatch = userText.match(/\b(\d+)\b/) || userText.match(/\b(one|two|three|four|five|six|seven|eight)\b/i);
+            const partySize = partyMatch ? 
+                (isNaN(partyMatch[1]) ? 
+                    {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8}[partyMatch[1].toLowerCase()] 
+                    : parseInt(partyMatch[1])) 
+                : 2;
+            
+            // Extract section preference
+            const text = userText.toLowerCase();
+            let preferredSection = 'any';
+            if (text.includes('terrace') || text.includes('outdoor')) preferredSection = 'terrace';
+            else if (text.includes('vip') || text.includes('lounge')) preferredSection = 'vip';
+            else if (text.includes('main') || text.includes('hall')) preferredSection = 'main';
+            
+            // Find suitable tables
+            let suitableTables = availableTables.filter(t => t.seats >= partySize);
+            
+            if (preferredSection !== 'any') {
+                const preferredTables = suitableTables.filter(t => {
+                    const section = getTableSection(t);
+                    return section === preferredSection;
+                });
+                
+                if (preferredTables.length > 0) {
+                    suitableTables = preferredTables;
+                }
+            }
+            
+            if (suitableTables.length === 0) {
+                return `I don't see any tables available for ${partySize} people right now. Would you like to join a queue or try our Smart Queue?`;
+            }
+            
+            // Sort by smallest suitable size
+            suitableTables.sort((a, b) => a.seats - b.seats);
+            const bestTable = suitableTables[0];
+            const sectionName = getTableSection(bestTable);
+            
+            return `Hey! How are you? I recommend <strong>Table #${bestTable.number}</strong> (${bestTable.seats} seats) in the ${sectionName} section. It's ideal for your party of ${partySize}. <button class="btn btn-primary" onclick="reserveFromChat('${bestTable.id}')" style="margin-left: -8px; padding: 8px 6px; font-size: 12px;">Reserve Now</button>`;
+        }
+
+        window.reserveFromChat = function(tableId) {
+            const table = db.tables[restaurantId][tableId];
+            if (!table || table.status !== 'available') {
+                showToast('⚠️ Table is no longer available', 'error');
+                return;
+            }
+            
+            document.getElementById('chatbot').classList.remove('open');
+            openReservationModal(table);
+        };
+
+        // Form clearing utility
+        function clearForm(formType) {
+            switch (formType) {
+                case 'reservation':
+                    document.getElementById('customerName').value = '';
+                    document.getElementById('customerPhone').value = '';
+                    document.getElementById('customerParty').value = '';
+                    break;
+                case 'queue':
+                    document.getElementById('queueName').value = '';
+                    document.getElementById('queuePhone').value = '';
+                    document.getElementById('queueParty').value = '';
+                    break;
+                case 'smartQueue':
+                    document.getElementById('smartName').value = '';
+                    document.getElementById('smartPhone').value = '';
+                    document.getElementById('smartParty').value = '';
+                    document.getElementById('smartPrefer').value = 'any';
+                    break;
+            }
+        }
+
+        // Modal close handlers
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('reservationModal').classList.remove('active');
+        });
+
+        document.getElementById('closeQueueBtn').addEventListener('click', () => {
+            document.getElementById('queueModal').classList.remove('active');
+        });
+
+        document.getElementById('closeSmartQueueBtn').addEventListener('click', () => {
+            document.getElementById('smartQueueModal').classList.remove('active');
+        });
+
+        // Keyboard support for modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                hideRotationMenu();
+            }
+        });
+
+        // Activity sidebar controls
+        document.getElementById('myActivityBtn').addEventListener('click', () => {
+            document.getElementById('activitySidebar').classList.toggle('open');
+            updateActivitySidebar();
+        });
+
+        document.getElementById('activityClose').addEventListener('click', () => {
+            document.getElementById('activitySidebar').classList.remove('open');
+        });
+
+        // View switching
+        document.getElementById('customerViewBtn').addEventListener('click', () => {
+            document.getElementById('customerApp').style.display = 'block';
+            document.getElementById('staffDashboard').classList.remove('active');
+            document.getElementById('customerViewBtn').classList.add('active');
+            document.getElementById('staffViewBtn').classList.remove('active');
+        });
+
+        document.getElementById('staffViewBtn').addEventListener('click', () => {
+            document.getElementById('staffDashboard').classList.add('active');
+            document.getElementById('customerApp').style.display = 'none';
+            document.getElementById('staffViewBtn').classList.add('active');
+            document.getElementById('customerViewBtn').classList.remove('active');
+            renderStaffDashboard();
+            
+            // Setup drag and drop for staff map (only once)
+            const staffMapContainer = document.getElementById('staffMap');
+            if (staffMapContainer && !staffMapContainer.dataset.dragSetup) {
+                setupDragAndDrop(staffMapContainer);
+            }
+        });
+
+        // Initialize the system
+        function initializeSystem() {
+            console.log('Initializing system with tables:', Object.keys(db.tables[restaurantId]).length);
+            renderTableMap();
+            renderMyReservation();
+            updateActivitySidebar();
+            
+            // Set up real-time updates
+            setInterval(() => {
+                updateTimers();
+                if (document.getElementById('staffDashboard').classList.contains('active')) {
+                    renderQueuePanel();
+                }
+            }, 1000);
+            
+            showToast('🚀 Welcome! ', 'success');
+            console.log('✅ System initialized successfully');
+        }
+
+        // Start the system after DOM is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing system...');
+            
+            // Test localStorage functionality
+            try {
+                const testKey = 'tapdine_test';
+                localStorage.setItem(testKey, 'test_value');
+                const testValue = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                console.log('localStorage test:', testValue === 'test_value' ? 'PASSED' : 'FAILED');
+            } catch (e) {
+                console.error('localStorage test FAILED:', e);
+            }
+            
+            initializeSystem();
+        });
+    </script>
+</body>
+</html>

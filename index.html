@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TapDine</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      font-family: 'Times New Roman', serif;
+      color: rgb(226, 239, 141);
+      background: #000; /* fallback for mobile */
+    }
+
+    /* Background Video */
+    video#bg-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      object-position: center;
+      z-index: 0; /* ensure it's above the page background */
+      pointer-events: none; /* allow clicks to pass through */
+    }
+
+    /* Navigation */
+    .menu-icon {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      cursor: pointer;
+    }
+
+    .menu-icon div {
+      width: 30px;
+      height: 2px;
+      background: white;
+      margin: 6px 0;
+    }
+
+    /* Reservation Button */
+    .reservation {
+      position: absolute;
+      bottom: 168px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 1px solid white;
+      padding: 12px 24px;
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 100; /* ensure button is clickable */
+      display: inline-block; /* ensure anchor sizing works */
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .reservation:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Center Text */
+    .center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10; /* below button but above video */
+    }
+
+    .center-text h1 {
+      font-size: 12vw;
+      font-weight: 500;
+      letter-spacing: 10px;
+      margin-bottom: 15px;
+    }
+
+    /* Glowing Subtitle */
+    .glow-text {
+      font-size: 1.8vw;
+      letter-spacing: 4px;
+      text-shadow:
+        0 0 5px rgba(208, 183, 58, 0.816),
+        0 0 10px rgba(219, 240, 81, 0.6),
+        0 0 20px rgba(45, 15, 15, 0.4);
+      animation: glowPulse 7s ease-in-out infinite;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% {
+        text-shadow:
+          0 0 5px rgba(208, 183, 58, 0.816),
+          0 0 10px rgba(219, 240, 81, 0.6),
+          0 0 20px rgba(24, 21, 21, 0.4);
+      }
+      50% {
+        text-shadow:
+          0 0 5px rgba(208, 183, 58, 0.816),
+          0 0 10px rgba(219, 240, 81, 0.6),
+          0 0 30px rgba(22, 21, 21, 0.6);
+      }
+    }
+
+    /* Mobile: keep video visible and looping */
+    @media (max-width: 768px) {
+      video#bg-video {
+        display: block; /* ensure visible on mobile */
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        object-position: center;
+      }
+      body {
+        background: #000; /* no image fallback */
+      }
+      .reservation {
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        padding: 10px 20px;
+        width: auto;
+        max-width: 90%;
+      }
+      .center-text h1 {
+        font-size: 18vw;
+        letter-spacing: 3px;
+        margin-bottom: 10px;
+      }
+      .glow-text {
+        font-size: 3.5vw;
+        letter-spacing: 2px;
+      }
+    }
+
+    /* Extra small mobile devices */
+    @media (max-width: 480px) {
+      .reservation {
+        bottom: 60px;
+        font-size: 11px;
+        padding: 8px 16px;
+      }
+      .center-text h1 {
+        font-size: 16vw;
+        letter-spacing: 2px;
+      }
+      .glow-text {
+        font-size: 3vw;
+        letter-spacing: 1px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Video -->
+  <video autoplay muted loop playsinline webkit-playsinline preload="auto" id="bg-video">
+    <source src="video.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <!-- Reservation Button -->
+  <a class="reservation" href="main.html" onclick="console.log('Button clicked, navigating to main.html'); return true;">MAKE A RESERVATION</a>
+
+  <!-- Centered Title and Glowing Text -->
+  <div class="center-text">
+    <h1>TapDine</h1>
+    <div class="glow-text">- Reserve With Grace, At your own pace</div>
+  </div>
+
+  <script>
+    // Handle video autoplay issues
+    document.addEventListener('DOMContentLoaded', function() {
+      const video = document.getElementById('bg-video');
+      
+      // Try to play the video
+      const playVideo = async () => {
+        try {
+          await video.play();
+          console.log('Video autoplay successful');
+        } catch (error) {
+          console.log('Video autoplay failed:', error);
+          // Silent fail; user tap handler below will start playback
+        }
+      };
+
+      // Handle video load errors
+      video.addEventListener('error', function(e) {
+        console.log('Video load error:', e);
+        // Keep background black; user tap handler may recover
+      });
+
+      // Handle video can play
+      video.addEventListener('canplay', function() {
+        console.log('Video can play');
+      });
+
+      // Start video playback
+      playVideo();
+
+      // Add click anywhere to play video (for mobile) - but not on the reservation button
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('reservation')) {
+          return; // Don't interfere with button clicks
+        }
+        if (video.paused) {
+          video.play();
+        }
+      }, { once: true });
+
+      // No JS navigation needed; plain anchor handles navigation reliably
+    });
+  </script>
+</body>
+</html>
