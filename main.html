@@ -756,10 +756,11 @@
     </style>
 </head>
 <body>
-    <!-- View Switcher -->
-    <div class="view-switcher">
-        <button id="customerViewBtn" class="active">Customer View</button>
-        <button id="staffViewBtn">Staff Dashboard</button>
+    <!-- Staff Login Button (Hidden by default, access via ?admin=1) -->
+    <div id="staffLoginBtn" style="position: fixed; top: 20px; right: 20px; z-index: 2000; display: none;">
+        <button class="btn btn-primary" onclick="showStaffLogin()" style="padding: 12px 20px; font-weight: 700; background: linear-gradient(135deg, #6366F1, #06B6D4); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+            🔐 Staff Login
+        </button>
     </div>
 
     <!-- My Activity Button -->
@@ -1108,6 +1109,20 @@
                 <option value="vip">⭐ VIP Lounge</option>
             </select>
             <button class="btn btn-primary" id="smartJoinBtn" style="width: 100%; padding: 16px; font-size: 16px;">Join Smart Queue</button>
+        </div>
+    </div>
+
+    <!-- Staff Login Modal -->
+    <div id="staffLoginModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 24px; font-weight: 700;">🔐 Staff Access</h3>
+                <button id="closeStaffLoginBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Enter staff password to access the dashboard</p>
+            <input type="password" id="staffPassword" class="form-input" placeholder="Staff Password" style="font-family: monospace; letter-spacing: 2px;">
+            <button class="btn btn-primary" id="staffLoginSubmitBtn" style="width: 100%; padding: 16px; font-size: 16px;">Login</button>
+            <p id="staffLoginError" style="color: var(--danger); margin-top: 12px; display: none; text-align: center; font-size: 14px;">❌ Incorrect password</p>
         </div>
     </div>
 
@@ -3223,27 +3238,78 @@
             document.getElementById('activitySidebar').classList.remove('open');
         });
 
-        // View switching
-        document.getElementById('customerViewBtn').addEventListener('click', () => {
-            document.getElementById('customerApp').style.display = 'block';
-            document.getElementById('staffDashboard').classList.remove('active');
-            document.getElementById('customerViewBtn').classList.add('active');
-            document.getElementById('staffViewBtn').classList.remove('active');
-        });
-
-        document.getElementById('staffViewBtn').addEventListener('click', () => {
+        // Staff Access Control - Password: "staff2024"
+        const STAFF_PASSWORD = "staff2024";
+        
+        function showStaffLogin() {
+            document.getElementById('staffLoginModal').classList.add('active');
+            document.getElementById('staffPassword').value = '';
+            document.getElementById('staffLoginError').style.display = 'none';
+            setTimeout(() => document.getElementById('staffPassword').focus(), 100);
+        }
+        
+        function checkStaffAccess() {
+            // Check URL parameter for staff access
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('admin') === '1' || localStorage.getItem('staffLoggedIn') === 'true') {
+                document.getElementById('staffLoginBtn').style.display = 'block';
+                if (localStorage.getItem('staffLoggedIn') === 'true') {
+                    showStaffDashboard();
+                }
+            }
+        }
+        
+        function showStaffDashboard() {
             document.getElementById('staffDashboard').classList.add('active');
             document.getElementById('customerApp').style.display = 'none';
-            document.getElementById('staffViewBtn').classList.add('active');
-            document.getElementById('customerViewBtn').classList.remove('active');
+            document.getElementById('staffLoginBtn').style.display = 'none';
             renderStaffDashboard();
             
-            // Setup drag and drop for staff map (only once)
+            // Setup drag and drop for staff map
             const staffMapContainer = document.getElementById('staffMap');
             if (staffMapContainer && !staffMapContainer.dataset.dragSetup) {
                 setupDragAndDrop(staffMapContainer);
             }
+        }
+        
+        function hideStaffDashboard() {
+            document.getElementById('staffDashboard').classList.remove('active');
+            document.getElementById('customerApp').style.display = 'block';
+            document.getElementById('staffLoginBtn').style.display = 'block';
+        }
+        
+        // Staff Login Event Listeners
+        document.getElementById('closeStaffLoginBtn').addEventListener('click', () => {
+            document.getElementById('staffLoginModal').classList.remove('active');
         });
+        
+        document.getElementById('staffLoginSubmitBtn').addEventListener('click', () => {
+            const password = document.getElementById('staffPassword').value;
+            const errorMsg = document.getElementById('staffLoginError');
+            
+            if (password === STAFF_PASSWORD) {
+                localStorage.setItem('staffLoggedIn', 'true');
+                document.getElementById('staffLoginModal').classList.remove('active');
+                showStaffDashboard();
+                showToast('✅ Welcome to Staff Dashboard!');
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('staffPassword').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 3000);
+            }
+        });
+        
+        // Allow Enter key to submit login
+        document.getElementById('staffPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('staffLoginSubmitBtn').click();
+            }
+        });
+        
+        // Auto-show staff login button if admin parameter in URL
+        checkStaffAccess();
 
         // Initialize the system
         function initializeSystem() {
