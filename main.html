@@ -3176,7 +3176,7 @@
               const best = suitableTables[0];
               const sectionName = vipTables.includes(best.number) ? 'VIP' : 'main hall';
             
-              return `I recommend <strong>Table #${best.number}</strong> (${best.seats} seats) in the ${sectionName} section for your party of ${partySize}. <button class="btn btn-primary" onclick="reserveFromChat('${best.id}')" style="margin-left: -8px; padding: 8px 6px; font-size: 12px;">Reserve Now</button>`;
+              return `I recommend <strong>Table #${best.number}</strong> (${best.seats} seats) in the ${sectionName} section for your party of ${partySize}. <button class="btn btn-primary" onclick="reserveFromChat(\'${best.id}\')" style="margin-left: -8px; padding: 8px 6px; font-size: 12px;">Reserve Now</button>`;
             }
                 // Modal close handlers
                 document.getElementById('closeModalBtn').addEventListener('click', () => {
@@ -3323,6 +3323,7 @@
     </script>
 </body>
 </html>
+
 
 
 
