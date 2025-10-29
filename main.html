@@ -179,11 +179,13 @@
             background: var(--bg-primary);
             border-radius: 12px;
             padding: 24px;
+            width: 100%;
             height: clamp(320px, 91vh, 736px);
             position: relative;
             overflow-x: auto;
             overflow-y: hidden;
             border: 2px solid var(--border);
+            box-sizing: border-box;
             /* background handled by inner .map-stage so it scales with transform */
         }
 
@@ -3350,6 +3352,7 @@
     </script>
 </body>
 </html>
+
 
 
 
