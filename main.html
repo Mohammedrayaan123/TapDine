@@ -176,21 +176,14 @@
 
         /* Map Container with Background Image Support */
         .map-container {
-          background: var(--bg-primary);
-          border-radius: 12px;
-          padding: 24px;
-          width: 102%;
-          height: clamp(320px, 91vh, 736px);
-          position: relative;
-        
-          /* 👇 Change this */
-          overflow-x: auto;   /* enables horizontal scroll */
-          overflow-y: hidden; /* disables vertical scroll */
-        
-          border: 2px solid var(--border);
-          white-space: nowrap; /* optional: prevents wrapping inside */
-        }
-
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 24px;
+            height: clamp(320px, 91vh, 736px);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            /* background handled by inner .map-stage so it scales with transform */
         }
 
         /* Inner stage that holds the background and absolutely positioned items.
@@ -3356,6 +3349,7 @@
     </script>
 </body>
 </html>
+
 
 
 
