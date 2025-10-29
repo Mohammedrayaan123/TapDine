@@ -3127,140 +3127,109 @@
             }
         });
 
-        function generateAIResponse(userText) {
-            const availableTables = Object.values(db.tables[restaurantId])
-                .filter(t => t.status === 'available');
+            function generateAIResponse(userText) {
+              const text = userText.trim().toLowerCase();
             
-            if (availableTables.length === 0) {
+              /* 1️⃣  Greeting detector */
+              const greetingWords = ['hi', 'hello', 'hey', 'howdy', 'good morning', 'good afternoon', 'good evening', 'how are you', 'how r u', 'hiya', 'yo'];
+              const isGreeting = greetingWords.some(w => text.includes(w));
+            
+              if (isGreeting) {
+                return "Hey! I am Munchie, an AI chatbot that helps you in your reservation. 😊 Tell me how many guests and where you'd like to sit (main hall / VIP) and I'll find the perfect table for you!";
+              }
+            
+              /* 2️⃣  Table-finding logic */
+              const availableTables = Object.values(db.tables[restaurantId]).filter(t => t.status === 'available');
+              if (availableTables.length === 0) {
                 return "Sorry, no tables are currently available. Would you like to join our Smart Queue to be automatically assigned the next available table?";
-            }
+              }
             
-            // Extract party size
-            const partyMatch = userText.match(/\b(\d+)\b/) || userText.match(/\b(one|two|three|four|five|six|seven|eight)\b/i);
-            const partySize = partyMatch ? 
-                (isNaN(partyMatch[1]) ? 
-                    {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8}[partyMatch[1].toLowerCase()] 
-                    : parseInt(partyMatch[1])) 
+              const partyMatch = userText.match(/\b(\d+)\b/) || userText.match(/\b(one|two|three|four|five|six|seven|eight)\b/i);
+              const partySize = partyMatch
+                ? (isNaN(partyMatch[1])
+                    ? { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 }[partyMatch[1].toLowerCase()]
+                    : parseInt(partyMatch[1], 10))
                 : 2;
             
-            // Extract section preference
-            const text = userText.toLowerCase();
-            let preferredSection = 'any';
-            if (text.includes('terrace') || text.includes('outdoor')) preferredSection = 'terrace';
-            else if (text.includes('vip') || text.includes('lounge')) preferredSection = 'vip';
-            else if (text.includes('main') || text.includes('hall')) preferredSection = 'main';
+              /* 3️⃣  Section mapping */
+              const vipTables = [5, 4, 6, 7, 8, 9, 10];
+              const mainTables = [11, 15, 18, 2, 16, 12, 17, 22, 13, 20, 14, 19, 21];
             
-            // Find suitable tables
-            let suitableTables = availableTables.filter(t => t.seats >= partySize);
+              let preferredSection = 'any';
+              if (text.includes('vip') || text.includes('lounge')) preferredSection = 'vip';
+              else if (text.includes('main') || text.includes('hall')) preferredSection = 'main';
             
-            if (preferredSection !== 'any') {
-                const preferredTables = suitableTables.filter(t => {
-                    const section = getTableSection(t);
-                    return section === preferredSection;
+              let suitableTables = availableTables.filter(t => t.seats >= partySize);
+              if (preferredSection !== 'any') {
+                suitableTables = suitableTables.filter(t => {
+                  if (preferredSection === 'vip') return vipTables.includes(t.number);
+                  if (preferredSection === 'main') return mainTables.includes(t.number);
+                  return true;
                 });
-                
-                if (preferredTables.length > 0) {
-                    suitableTables = preferredTables;
-                }
-            }
+              }
             
-            if (suitableTables.length === 0) {
+              if (suitableTables.length === 0) {
                 return `I don't see any tables available for ${partySize} people right now. Would you like to join a queue or try our Smart Queue?`;
-            }
+              }
             
-            // Sort by smallest suitable size
-            suitableTables.sort((a, b) => a.seats - b.seats);
-            const bestTable = suitableTables[0];
-            const sectionName = getTableSection(bestTable);
+              suitableTables.sort((a, b) => a.seats - b.seats);
+              const best = suitableTables[0];
+              const sectionName = vipTables.includes(best.number) ? 'VIP' : 'main hall';
             
-            return `Hey! How are you? I recommend <strong>Table #${bestTable.number}</strong> (${bestTable.seats} seats) in the ${sectionName} section. It's ideal for your party of ${partySize}. <button class="btn btn-primary" onclick="reserveFromChat('${bestTable.id}')" style="margin-left: -8px; padding: 8px 6px; font-size: 12px;">Reserve Now</button>`;
-        }
-
-        window.reserveFromChat = function(tableId) {
-            const table = db.tables[restaurantId][tableId];
-            if (!table || table.status !== 'available') {
-                showToast('⚠️ Table is no longer available', 'error');
-                return;
+              return `I recommend <strong>Table #${best.number}</strong> (${best.seats} seats) in the ${sectionName} section for your party of ${partySize}. <button class="btn btn-primary" onclick="reserveFromChat('${best.id}')" style="margin-left: -8px; padding: 8px 6px; font-size: 12px;">Reserve Now</button>`;
             }
-            
-            document.getElementById('chatbot').classList.remove('open');
-            openReservationModal(table);
-        };
-
-        // Form clearing utility
-        function clearForm(formType) {
-            switch (formType) {
-                case 'reservation':
-                    document.getElementById('customerName').value = '';
-                    document.getElementById('customerPhone').value = '';
-                    document.getElementById('customerParty').value = '';
-                    break;
-                case 'queue':
-                    document.getElementById('queueName').value = '';
-                    document.getElementById('queuePhone').value = '';
-                    document.getElementById('queueParty').value = '';
-                    break;
-                case 'smartQueue':
-                    document.getElementById('smartName').value = '';
-                    document.getElementById('smartPhone').value = '';
-                    document.getElementById('smartParty').value = '';
-                    document.getElementById('smartPrefer').value = 'any';
-                    break;
-            }
-        }
-
-        // Modal close handlers
-        document.getElementById('closeModalBtn').addEventListener('click', () => {
-            document.getElementById('reservationModal').classList.remove('active');
-        });
-
-        document.getElementById('closeQueueBtn').addEventListener('click', () => {
-            document.getElementById('queueModal').classList.remove('active');
-        });
-
-        document.getElementById('closeSmartQueueBtn').addEventListener('click', () => {
-            document.getElementById('smartQueueModal').classList.remove('active');
-        });
-
-        // Keyboard support for modals
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal.active').forEach(modal => {
-                    modal.classList.remove('active');
+                // Modal close handlers
+                document.getElementById('closeModalBtn').addEventListener('click', () => {
+                    document.getElementById('reservationModal').classList.remove('active');
                 });
-                hideRotationMenu();
-            }
-        });
-
-        // Activity sidebar controls
-        document.getElementById('myActivityBtn').addEventListener('click', () => {
-            document.getElementById('activitySidebar').classList.toggle('open');
-            updateActivitySidebar();
-        });
-
-        document.getElementById('activityClose').addEventListener('click', () => {
-            document.getElementById('activitySidebar').classList.remove('open');
-        });
-
-        // Staff Access Control - Password: "staff2024"
-        const STAFF_PASSWORD = "staff2024";
         
-        function showStaffLogin() {
-            document.getElementById('staffLoginModal').classList.add('active');
-            document.getElementById('staffPassword').value = '';
-            document.getElementById('staffLoginError').style.display = 'none';
-            setTimeout(() => document.getElementById('staffPassword').focus(), 100);
-        }
+                document.getElementById('closeQueueBtn').addEventListener('click', () => {
+                    document.getElementById('queueModal').classList.remove('active');
+                });
         
-        function checkStaffAccess() {
-            // Check URL parameter for staff access
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('admin') === '1' || localStorage.getItem('staffLoggedIn') === 'true') {
-                document.getElementById('staffLoginBtn').style.display = 'block';
-                if (localStorage.getItem('staffLoggedIn') === 'true') {
-                    showStaffDashboard();
+                document.getElementById('closeSmartQueueBtn').addEventListener('click', () => {
+                    document.getElementById('smartQueueModal').classList.remove('active');
+                });
+        
+                // Keyboard support for modals
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        document.querySelectorAll('.modal.active').forEach(modal => {
+                            modal.classList.remove('active');
+                        });
+                        hideRotationMenu();
+                    }
+                });
+        
+                // Activity sidebar controls
+                document.getElementById('myActivityBtn').addEventListener('click', () => {
+                    document.getElementById('activitySidebar').classList.toggle('open');
+                    updateActivitySidebar();
+                });
+        
+                document.getElementById('activityClose').addEventListener('click', () => {
+                    document.getElementById('activitySidebar').classList.remove('open');
+                });
+        
+                // Staff Access Control - Password: "staff2024"
+                const STAFF_PASSWORD = "staff2024";
+                
+                function showStaffLogin() {
+                    document.getElementById('staffLoginModal').classList.add('active');
+                    document.getElementById('staffPassword').value = '';
+                    document.getElementById('staffLoginError').style.display = 'none';
+                    setTimeout(() => document.getElementById('staffPassword').focus(), 100);
                 }
-            }
+                
+                function checkStaffAccess() {
+                    // Check URL parameter for staff access
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('admin') === '1' || localStorage.getItem('staffLoggedIn') === 'true') {
+                        document.getElementById('staffLoginBtn').style.display = 'block';
+                        if (localStorage.getItem('staffLoggedIn') === 'true') {
+                            showStaffDashboard();
+                        }
+                    }
         }
         
         function showStaffDashboard() {
@@ -3354,6 +3323,7 @@
     </script>
 </body>
 </html>
+
 
 
 
