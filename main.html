@@ -1457,6 +1457,14 @@
         let isDraggingTable = false;
         let rotationMenuTarget = null;
 
+        /* ===== GLOBAL CHAT-BOT RESERVE HELPER ===== */
+        window.reserveFromChat = function (tableId) {
+          console.log('[reserveFromChat] clicked with id:', tableId);
+          const table = db.tables[restaurantId][tableId];
+          if (!table) { alert('Table not found'); return; }
+          openReservationModal(table);
+        };
+
         // Map stage constants and helpers
         const MAP_DESIGN_WIDTH = 1123;
         const MAP_DESIGN_HEIGHT = 723;
@@ -3323,6 +3331,7 @@
     </script>
 </body>
 </html>
+
 
 
 
