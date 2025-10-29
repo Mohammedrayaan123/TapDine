@@ -1457,12 +1457,26 @@
         let isDraggingTable = false;
         let rotationMenuTarget = null;
 
-        /* ===== GLOBAL CHAT-BOT RESERVE HELPER ===== */
-        window.reserveFromChat = function (tableId) {
-          console.log('[reserveFromChat] clicked with id:', tableId);
-          const table = db.tables[restaurantId][tableId];
-          if (!table) { alert('Table not found'); return; }
-          openReservationModal(table);
+               /* ===== GLOBAL FORM CLEAR HELPER ===== */
+        window.clearForm = function (formType) {
+          switch (formType) {
+            case 'reservation':
+              document.getElementById('customerName').value = '';
+              document.getElementById('customerPhone').value = '';
+              document.getElementById('customerParty').value = '';
+              break;
+            case 'queue':
+              document.getElementById('queueName').value = '';
+              document.getElementById('queuePhone').value = '';
+              document.getElementById('queueParty').value = '';
+              break;
+            case 'smartQueue':
+              document.getElementById('smartName').value = '';
+              document.getElementById('smartPhone').value = '';
+              document.getElementById('smartParty').value = '';
+              document.getElementById('smartPrefer').value = 'any';
+              break;
+          }
         };
 
         // Map stage constants and helpers
@@ -3331,6 +3345,7 @@
     </script>
 </body>
 </html>
+
 
 
 
